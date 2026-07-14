@@ -4,6 +4,37 @@ import { useEffect, useMemo, useState } from "react";
 import type { SignatureEvent } from "./types";
 import type { DayPoint } from "@/components/dashboard/charts";
 
+/**
+ * Client-side demo seed, mirroring the server's — used on static hosting
+ * (GitHub Pages) where /api/events doesn't exist.
+ */
+function clientSeed(): SignatureEvent[] {
+  const events: SignatureEvent[] = [];
+  const now = Date.now();
+  const day = 86400000;
+  let id = 0;
+  for (let d = 13; d >= 0; d--) {
+    const date = new Date(now - d * day);
+    const weekend = [0, 6].includes(date.getDay());
+    const impressions = Math.round((30 + (13 - d) * 3) * (weekend ? 0.4 : 1));
+    const clicks = Math.round(impressions * (0.06 + (13 - d) * 0.002));
+    for (let i = 0; i < impressions + clicks; i++) {
+      const isClick = i >= impressions;
+      events.push({
+        id: `local-${id++}`,
+        signatureId: "sig-1",
+        eventType: isClick ? "click" : "impression",
+        createdAt: new Date(date.getTime() - ((i * 997) % day)).toISOString(),
+        meta: {
+          emailClientGuess: ["Gmail", "Outlook", "Apple Mail"][i % 3],
+          ...(isClick ? { target: ["cta", "linkedin", "website", "cta", "cta"][i % 5] } : {}),
+        },
+      });
+    }
+  }
+  return events;
+}
+
 export function useEvents(signatureId?: string) {
   const [events, setEvents] = useState<SignatureEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -11,9 +42,15 @@ export function useEvents(signatureId?: string) {
   useEffect(() => {
     const qs = signatureId ? `?signatureId=${encodeURIComponent(signatureId)}` : "";
     fetch(`/api/events${qs}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("no events api");
+        return r.json();
+      })
       .then((j) => setEvents(j.events ?? []))
-      .catch(() => setEvents([]))
+      .catch(() => {
+        const seed = clientSeed();
+        setEvents(signatureId ? seed.filter((e) => e.signatureId === signatureId) : seed);
+      })
       .finally(() => setLoading(false));
   }, [signatureId]);
 
