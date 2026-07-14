@@ -309,7 +309,7 @@ export default function EditorPage() {
                 type="checkbox"
                 checked={sig.verifiedBadge}
                 onChange={(e) => update({ verifiedBadge: e.target.checked })}
-                className="h-4 w-4 accent-[#4f46e5]"
+                className="h-4 w-4 accent-[#5b5bf7]"
               />
             </label>
           </Panel>

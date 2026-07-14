@@ -3,7 +3,7 @@
 /**
  * Hand-rolled SVG charts for the analytics dashboard.
  * Palette validated (dataviz six checks, light surface #ffffff):
- *   impressions #4f46e5 · clicks #0d9488 — CVD ΔE 76.6, all checks PASS.
+ *   impressions #5b5bf7 · clicks #0d9488 — CVD ΔE 75.1, all checks PASS.
  * Marks: 2px lines, ≥8px hover targets, recessive grid, direct labels,
  * text in ink tokens (never series color).
  */
@@ -11,7 +11,7 @@
 import { useMemo, useState } from "react";
 
 export const SERIES_COLORS = {
-  impressions: "#4f46e5",
+  impressions: "#5b5bf7",
   clicks: "#0d9488",
 } as const;
 

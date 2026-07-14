@@ -68,7 +68,7 @@ function track(baseUrl: string, sigId: string, key: string, to: string): string 
 
 export function buildEmailHtml(data: SignatureData, opts: EmailHtmlOptions): string {
   const { baseUrl } = opts;
-  const brand = data.brandColor || "#4f46e5";
+  const brand = data.brandColor || "#5b5bf7";
   const muted = "#55556b";
   const faint = "#8a8aa0";
 

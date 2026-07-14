@@ -1,30 +1,20 @@
-import { Hero } from "@/components/marketing/Hero";
+import { Hero } from "@/components/landing/Hero";
 import {
-  Deliverability,
-  FAQ,
-  FeaturesGrid,
+  Benefits,
+  Features,
   FinalCTA,
   HowItWorks,
-  InteractiveDemo,
-  PlatformTabs,
-  PricingTeaser,
-  SocialProof,
-  StatsBar,
-} from "@/components/marketing/Sections";
+  ProductShowcase,
+} from "@/components/landing/Sections";
 
 export default function LandingPage() {
   return (
     <>
       <Hero />
-      <SocialProof />
-      <StatsBar />
+      <Features />
+      <ProductShowcase />
       <HowItWorks />
-      <InteractiveDemo />
-      <Deliverability />
-      <PlatformTabs />
-      <FeaturesGrid />
-      <PricingTeaser />
-      <FAQ />
+      <Benefits />
       <FinalCTA />
     </>
   );

@@ -7,19 +7,20 @@
 --------------------------------------------------------------------------- */
 @theme {
   /* Ink & surfaces (never pure black / pure white) */
-  --color-ink: #0a0a0f;
-  --color-ink-soft: #1b1b24;
-  --color-ink-muted: #55556b;
-  --color-ink-faint: #8a8aa0;
-  --color-cream: #fafaf8;
-  --color-cream-dim: #f2f2ee;
-  --color-line: #e7e7e2;
+  --color-ink: #111827;
+  --color-ink-soft: #1f2937;
+  --color-ink-muted: #6b7280;
+  --color-ink-faint: #9ca3af;
+  --color-cream: #fafafc;
+  --color-cream-dim: #f3f4f8;
+  --color-line: #e8e9f0;
 
-  /* Accent system: blue → violet, used sparingly */
-  --color-accent: #4f46e5;
-  --color-accent-hi: #6366f1;
-  --color-violet: #8b5cf6;
-  --color-accent-soft: #eef0ff;
+  /* Accent system: indigo → soft violet, cyan highlight — used sparingly */
+  --color-accent: #5b5bf7;
+  --color-accent-hi: #7c7cff;
+  --color-violet: #8b7dff;
+  --color-cyan: #00d4ff;
+  --color-accent-soft: #eeefff;
   --color-success: #10b981;
   --color-warn: #f59e0b;
   --color-danger: #ef4444;
@@ -30,9 +31,9 @@
   --radius-2xl: 1rem;
   --radius-3xl: 1.5rem;
 
-  --shadow-card: 0 1px 2px rgb(10 10 15 / 0.04), 0 8px 24px rgb(10 10 15 / 0.06);
-  --shadow-pop: 0 2px 8px rgb(10 10 15 / 0.08), 0 20px 48px rgb(10 10 15 / 0.14);
-  --shadow-glow: 0 0 0 1px rgb(79 70 229 / 0.12), 0 8px 32px rgb(79 70 229 / 0.25);
+  --shadow-card: 0 1px 2px rgb(17 24 39 / 0.04), 0 8px 24px rgb(17 24 39 / 0.06);
+  --shadow-pop: 0 2px 8px rgb(17 24 39 / 0.08), 0 20px 48px rgb(17 24 39 / 0.14);
+  --shadow-glow: 0 0 0 1px rgb(91 91 247 / 0.12), 0 8px 32px rgb(91 91 247 / 0.25);
 
   --animate-shimmer: shimmer 2.4s linear infinite;
   --animate-pulse-soft: pulse-soft 2.6s ease-in-out infinite;
@@ -46,8 +47,28 @@
 }
 
 @keyframes pulse-soft {
-  0%, 100% { box-shadow: 0 0 0 0 rgb(79 70 229 / 0.35); }
-  55% { box-shadow: 0 0 0 9px rgb(79 70 229 / 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgb(91 91 247 / 0.35); }
+  55% { box-shadow: 0 0 0 9px rgb(91 91 247 / 0); }
+}
+
+/* Slow breathing glow for hero background blobs */
+@keyframes blob-pulse {
+  0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.55; }
+  50% { transform: scale(1.15) translate(2%, -3%); opacity: 0.8; }
+}
+
+/* Animated gradient sweep for CTA panels and gradient text */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Rising particles in the CTA section */
+@keyframes particle-rise {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  12% { opacity: 0.7; }
+  100% { transform: translateY(-540px) scale(0.4); opacity: 0; }
 }
 
 @keyframes float {
@@ -77,9 +98,11 @@ body {
   background: rgb(79 70 229 / 0.18);
 }
 
-/* Utility: gradient text for the accent moments */
+/* Utility: gradient text for the accent moments — slowly animated */
 .text-gradient {
-  background: linear-gradient(100deg, var(--color-accent) 10%, var(--color-violet) 90%);
+  background: linear-gradient(100deg, var(--color-accent) 0%, var(--color-violet) 50%, var(--color-cyan) 100%);
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease-in-out infinite;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -88,6 +111,35 @@ body {
 /* Utility: the one accent gradient, for fills */
 .bg-gradient-accent {
   background: linear-gradient(100deg, var(--color-accent) 0%, var(--color-violet) 100%);
+}
+
+/* Animated gradient fill (CTA banner) */
+.bg-gradient-animated {
+  background: linear-gradient(115deg, #5b5bf7, #8b7dff 40%, #00d4ff 75%, #5b5bf7);
+  background-size: 300% 300%;
+  animation: gradient-shift 10s ease-in-out infinite;
+}
+
+/* Light glassmorphism card (floating showcase, feature chips) */
+.glass-card {
+  background: rgb(255 255 255 / 0.62);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid rgb(255 255 255 / 0.75);
+  box-shadow: 0 1px 2px rgb(17 24 39 / 0.04), 0 16px 40px rgb(17 24 39 / 0.08);
+}
+
+/* Gradient hairline border (feature blocks) via nested background trick */
+.gradient-border {
+  position: relative;
+  background:
+    linear-gradient(var(--color-cream), var(--color-cream)) padding-box,
+    linear-gradient(135deg, rgb(91 91 247 / 0.35), rgb(139 125 255 / 0.12) 45%, rgb(0 212 255 / 0.3)) border-box;
+  border: 1px solid transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-gradient, .bg-gradient-animated { animation: none; }
 }
 
 /* Glass surface for navs/overlays */

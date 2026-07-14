@@ -8,7 +8,7 @@ export const TEMPLATES: SignatureTemplate[] = [
     roleTag: "Founders",
     description: "Photo-forward with a bold CTA banner. Built to book demos.",
     layout: "photo-left",
-    defaultColor: "#4f46e5",
+    defaultColor: "#5b5bf7",
   },
   {
     id: "ledger",
@@ -35,7 +35,7 @@ export const TEMPLATES: SignatureTemplate[] = [
     roleTag: "Creatives",
     description: "Logo-led stacked layout with animated brand mark.",
     layout: "stacked",
-    defaultColor: "#8b5cf6",
+    defaultColor: "#8b7dff",
   },
   {
     id: "beacon",
@@ -74,7 +74,7 @@ export const DEFAULT_SIGNATURE: SignatureData = {
   },
   logoUrl: "",
   photoUrl: "",
-  brandColor: "#4f46e5",
+  brandColor: "#5b5bf7",
   ctaText: "Book a Demo",
   ctaUrl: "https://cal.com/alexrivera/demo",
   animationStyle: "subtle",

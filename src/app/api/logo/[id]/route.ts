@@ -20,7 +20,7 @@ export async function GET(
   });
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="112" height="112" viewBox="0 0 112 112">
-  <rect width="112" height="112" rx="24" fill="#4f46e5"/>
+  <rect width="112" height="112" rx="24" fill="#5b5bf7"/>
   <text x="56" y="70" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="bold" fill="#ffffff" text-anchor="middle">NL</text>
 </svg>`;
 
