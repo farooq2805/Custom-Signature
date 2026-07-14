@@ -7,13 +7,15 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  build-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,11 +37,32 @@ jobs:
         env:
           NEXT_STATIC_EXPORT: "1"
 
-      # Publishing to the gh-pages branch auto-enables Pages for the repo
-      # (branch-based deployment) — no manual settings step required.
+      # Path A: publish to gh-pages branch (covers Pages source =
+      # "Deploy from a branch"). Non-fatal so path B still runs.
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
+        continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./out
           force_orphan: true
+
+      # Path B: official Pages artifact (covers Pages source =
+      # "GitHub Actions"). Site already exists, so no enablement needed.
+      - uses: actions/configure-pages@v5
+        continue-on-error: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
