@@ -15,8 +15,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
@@ -55,17 +55,23 @@ interface ExamplePersona {
   company: string;
   domain: string;
   color: string;
+  photo: string;
 }
 
+/**
+ * Recognizable-brand demo personas (fictional people, nominative brand
+ * references — the same device the reference site uses with Zapier and
+ * Squarespace) so the flowing signatures read instantly credible.
+ */
 const EXAMPLES: ExamplePersona[] = [
-  { industry: "Real Estate", name: "Maya Bennett", title: "Principal Broker", company: "Keystone Realty", domain: "keystonerealty.com", color: "#b45309" },
-  { industry: "Healthcare", name: "Dr. Sarah Chen", title: "Cardiologist", company: "Beacon Health", domain: "beaconhealth.com", color: "#0284c7" },
-  { industry: "Tech Founder", name: "Alex Rivera", title: "Co-founder & CEO", company: "Northwind Labs", domain: "northwindlabs.com", color: "#5b5bf7" },
-  { industry: "Finance", name: "James Okafor", title: "Wealth Advisor", company: "Vantage Capital", domain: "vantagecap.com", color: "#0f766e" },
-  { industry: "Agency", name: "Lena Torres", title: "Creative Director", company: "Studio Meridian", domain: "studiomeridian.co", color: "#8b7dff" },
-  { industry: "Consulting", name: "David Kim", title: "Managing Partner", company: "Harbor & Co.", domain: "harborco.com", color: "#db2777" },
-  { industry: "Sales", name: "Marcus Webb", title: "Head of Sales", company: "Atlas Outbound", domain: "atlasoutbound.io", color: "#dc2626" },
-  { industry: "Product", name: "Priya Nair", title: "Head of Product", company: "Fern & Field", domain: "fernandfield.com", color: "#0d9488" },
+  { industry: "Sales", name: "Marcus Webb", title: "VP of Sales", company: "Salesforce", domain: "salesforce.com", color: "#00A1E0", photo: "https://randomuser.me/api/portraits/men/32.jpg" },
+  { industry: "Real Estate", name: "Maya Bennett", title: "Principal Broker", company: "Zillow", domain: "zillow.com", color: "#1277e1", photo: "https://randomuser.me/api/portraits/women/44.jpg" },
+  { industry: "Healthcare", name: "Dr. Sarah Chen", title: "Medical Director", company: "Pfizer", domain: "pfizer.com", color: "#0093d0", photo: "https://randomuser.me/api/portraits/women/65.jpg" },
+  { industry: "Tech Founder", name: "Alex Rivera", title: "Co-founder & CEO", company: "Shopify", domain: "shopify.com", color: "#5E8E3E", photo: "https://randomuser.me/api/portraits/men/85.jpg" },
+  { industry: "Finance", name: "James Okafor", title: "Managing Director", company: "Goldman Sachs", domain: "gs.com", color: "#1f4e79", photo: "https://randomuser.me/api/portraits/men/52.jpg" },
+  { industry: "Agency", name: "Lena Torres", title: "Creative Director", company: "Adobe", domain: "adobe.com", color: "#FA0F00", photo: "https://randomuser.me/api/portraits/women/68.jpg" },
+  { industry: "Consulting", name: "David Kim", title: "Managing Partner", company: "Deloitte", domain: "deloitte.com", color: "#26890d", photo: "https://randomuser.me/api/portraits/men/11.jpg" },
+  { industry: "Product", name: "Priya Nair", title: "Head of Product", company: "Netflix", domain: "netflix.com", color: "#E50914", photo: "https://randomuser.me/api/portraits/women/17.jpg" },
 ];
 
 function initialsOf(name: string) {
@@ -108,7 +114,18 @@ function ExampleCard({ p }: { p: ExamplePersona }) {
         </div>
         {/* identity */}
         <div className="min-w-0 flex-1">
-          <p className="font-display text-base font-bold tracking-tight" style={{ color: p.color }}>
+          {/* animated wordmark: shimmer sweep sells "this logo is alive/clickable" */}
+          <p
+            className="w-fit cursor-pointer font-display text-base font-bold tracking-tight transition-transform duration-200 hover:scale-105"
+            style={{
+              backgroundImage: `linear-gradient(100deg, ${p.color} 38%, #ffffff 50%, ${p.color} 62%)`,
+              backgroundSize: "220% 100%",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+              animation: "shimmer 3s linear infinite",
+            }}
+          >
             {p.company}
           </p>
           <p className="mt-1 flex items-center gap-1 text-[13px] font-semibold text-ink">
@@ -117,17 +134,30 @@ function ExampleCard({ p }: { p: ExamplePersona }) {
           </p>
           <p className="text-[11px] text-ink-muted">{p.title}</p>
           <p className="mt-1 truncate text-[10.5px] text-ink-faint">
-            {p.name.split(" ")[0].toLowerCase()}@{p.domain}
+            {p.name.replace(/^Dr\.\s*/i, "").split(" ")[0].toLowerCase()}@{p.domain}
           </p>
           <p className="truncate text-[10.5px] text-ink-faint">www.{p.domain}</p>
         </div>
-        {/* slanted avatar block, echoing the reference's diagonal photo crop */}
-        <div className="relative h-[76px] w-[64px] shrink-0 overflow-hidden">
+        {/* slanted portrait, echoing the reference's diagonal photo crop;
+            initials monogram shows if the photo can't load */}
+        <div className="relative h-[76px] w-[64px] shrink-0">
           <div
-            className="absolute inset-y-0 left-1 right-1 flex -skew-x-[10deg] items-center justify-center rounded-lg font-display text-lg font-bold text-white"
+            className="absolute inset-y-0 left-1 right-1 flex -skew-x-[10deg] items-center justify-center overflow-hidden rounded-lg"
             style={{ background: `linear-gradient(135deg, ${p.color}, ${p.color}99)` }}
           >
-            <span className="skew-x-[10deg]">{initialsOf(p.name)}</span>
+            <span className="skew-x-[10deg] font-display text-lg font-bold text-white">
+              {initialsOf(p.name)}
+            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={p.photo}
+              alt=""
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+              className="absolute inset-0 h-full w-full skew-x-[10deg] scale-[1.25] object-cover"
+            />
           </div>
           <div className="absolute inset-y-0 -right-0.5 w-1.5 -skew-x-[10deg] rounded bg-white/70" />
         </div>
@@ -139,6 +169,58 @@ function ExampleCard({ p }: { p: ExamplePersona }) {
 /* ------------------------------------------------------------------ */
 /* The flowing showcase: marquee through an email compose window       */
 /* ------------------------------------------------------------------ */
+
+/** Stop-and-go strip: each card glides into the ring, dwells, then advances. */
+function SteppedStrip() {
+  const reduce = useReducedMotion();
+  const [pos, setPos] = useState(0); // 0..N — advances one card per beat
+  const [instant, setInstant] = useState(false);
+  const paused = useRef(false);
+  const CARD = 320 + 24; // card width + gap
+  const N = EXAMPLES.length;
+
+  useEffect(() => {
+    if (reduce) return;
+    const t = setInterval(() => {
+      if (!paused.current) setPos((p) => (p < N ? p + 1 : p));
+    }, 2600); // ~0.7s glide + ~1.9s dwell in the ring
+    return () => clearInterval(t);
+  }, [reduce, N]);
+
+  // after gliding onto the duplicate lap, snap back to origin invisibly
+  useEffect(() => {
+    if (!instant) return;
+    const id = requestAnimationFrame(() => setInstant(false));
+    return () => cancelAnimationFrame(id);
+  }, [instant]);
+
+  return (
+    <div
+      className="overflow-hidden py-8 [mask-image:linear-gradient(90deg,transparent,black_8%,black_92%,transparent)]"
+      onMouseEnter={() => (paused.current = true)}
+      onMouseLeave={() => (paused.current = false)}
+    >
+      <motion.div
+        className="flex w-max gap-6 pr-6"
+        animate={{ x: -pos * CARD }}
+        transition={instant ? { duration: 0 } : { duration: 0.7, ease: EASE }}
+        onAnimationComplete={() => {
+          if (pos === N) {
+            setInstant(true);
+            setPos(0);
+          }
+        }}
+        // two lead-in cards keep the left side filled; padding centers the
+        // pos-th card exactly inside the selection ring
+        style={{ willChange: "transform", paddingLeft: `calc(50% - ${160 + 2 * CARD}px)` }}
+      >
+        {[...EXAMPLES.slice(-2), ...EXAMPLES, ...EXAMPLES].map((p, i) => (
+          <ExampleCard key={`${p.company}-${i}`} p={p} />
+        ))}
+      </motion.div>
+    </div>
+  );
+}
 
 function SignatureFlow() {
   return (
@@ -186,13 +268,9 @@ function SignatureFlow() {
         </div>
       </div>
 
-      {/* the flowing strip — centered on the signature slot */}
-      <div className="absolute inset-x-0 top-[63%] z-10 -translate-y-1/2 overflow-hidden py-8 [mask-image:linear-gradient(90deg,transparent,black_8%,black_92%,transparent)]">
-        <div className="marquee-row flex w-max gap-6 pr-6">
-          {[...EXAMPLES, ...EXAMPLES].map((p, i) => (
-            <ExampleCard key={`${p.company}-${i}`} p={p} />
-          ))}
-        </div>
+      {/* the stepping strip — centered on the signature slot */}
+      <div className="absolute inset-x-0 top-[63%] z-10 -translate-y-1/2">
+        <SteppedStrip />
       </div>
 
       {/* glowing selection ring, sharing the strip's center — cards flow through it */}
