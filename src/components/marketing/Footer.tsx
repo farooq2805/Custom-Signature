@@ -1,5 +1,14 @@
 import Link from "next/link";
+import { Linkedin, Mail, Youtube } from "lucide-react";
 import { Logo } from "./Logo";
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
 
 const LINKS: [string, string][] = [
   ["Features", "/#features"],
@@ -31,11 +40,22 @@ export function Footer() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-6 text-sm text-ink-faint">
-          <a href="https://x.com" className="transition hover:text-ink" aria-label="X">𝕏</a>
-          <a href="https://linkedin.com" className="transition hover:text-ink" aria-label="LinkedIn">in</a>
-          <a href="https://youtube.com" className="transition hover:text-ink" aria-label="YouTube">▶</a>
-          <a href="mailto:hello@sigcraft.app" className="transition hover:text-ink">hello@sigcraft.app</a>
+        <div className="flex items-center gap-2 text-ink-faint">
+          {[
+            { href: "https://x.com", label: "X (Twitter)", Icon: XIcon },
+            { href: "https://linkedin.com", label: "LinkedIn", Icon: Linkedin },
+            { href: "https://youtube.com", label: "YouTube", Icon: Youtube },
+            { href: "mailto:hello@sigcraft.app", label: "Email us", Icon: Mail },
+          ].map(({ href, label, Icon }) => (
+            <a
+              key={label}
+              href={href}
+              aria-label={label}
+              className="flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-cream-dim hover:text-ink"
+            >
+              <Icon className="h-4.5 w-4.5" />
+            </a>
+          ))}
         </div>
 
         <p className="text-xs text-ink-faint">

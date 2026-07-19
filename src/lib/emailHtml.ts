@@ -69,8 +69,8 @@ function track(baseUrl: string, sigId: string, key: string, to: string): string 
 export function buildEmailHtml(data: SignatureData, opts: EmailHtmlOptions): string {
   const { baseUrl } = opts;
   const brand = data.brandColor || "#5b5bf7";
-  const muted = "#55556b";
-  const faint = "#8a8aa0";
+  const muted = "#6b7280";
+  const faint = "#64748b";
 
   // Logo cell: served through our impression-counting asset route when the
   // user uploaded one (and it can be the animated GIF variant); otherwise a
@@ -101,7 +101,7 @@ export function buildEmailHtml(data: SignatureData, opts: EmailHtmlOptions): str
           ${socialEntries
             .map(
               ([platform, url]) =>
-                `<td style="padding-right:6px;"><a href="${track(baseUrl, data.id, platform, url)}" style="display:inline-block;padding:4px 10px;border:1px solid #e7e7e2;border-radius:999px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:${esc(brand)};text-decoration:none;">${SOCIAL_LABELS[platform]}</a></td>`
+                `<td style="padding-right:6px;"><a href="${track(baseUrl, data.id, platform, url)}" style="display:inline-block;padding:4px 10px;border:1px solid #e8e9f0;border-radius:999px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:${esc(brand)};text-decoration:none;">${SOCIAL_LABELS[platform]}</a></td>`
             )
             .join("")}
         </tr></table>
@@ -124,7 +124,7 @@ export function buildEmailHtml(data: SignatureData, opts: EmailHtmlOptions): str
 
   const contactRow = contactBits.length
     ? `<tr><td style="padding-top:6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:${muted};">${contactBits.join(
-        `&nbsp;&nbsp;<span style="color:#e7e7e2;">|</span>&nbsp;&nbsp;`
+        `&nbsp;&nbsp;<span style="color:#e8e9f0;">|</span>&nbsp;&nbsp;`
       )}</td></tr>`
     : "";
 
@@ -147,7 +147,7 @@ export function buildEmailHtml(data: SignatureData, opts: EmailHtmlOptions): str
     <td valign="top">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
         <tr>
-          <td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#0a0a0f;">${esc(data.name)}${badge}</td>
+          <td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#111827;">${esc(data.name)}${badge}</td>
         </tr>
         <tr>
           <td style="padding-top:2px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:${muted};">${esc(data.title)}${data.title && data.company ? " &middot; " : ""}<span style="color:${esc(brand)};font-weight:bold;">${esc(data.company)}</span></td>

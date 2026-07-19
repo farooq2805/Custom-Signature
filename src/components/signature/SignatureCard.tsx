@@ -179,7 +179,7 @@ function SocialRow({ data, trackBase }: { data: SignatureData; trackBase?: strin
             whileHover={{ scale: 1.18, y: -2 }}
             whileTap={{ scale: 0.95 }}
             transition={{ type: "spring", stiffness: 400, damping: 17 }}
-            className="group flex h-8 w-8 items-center justify-center rounded-full border border-line bg-white text-ink-faint transition-colors"
+            className="group flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-ink-faint transition-colors"
             style={{ ["--hover" as string]: data.brandColor }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.color = data.brandColor;

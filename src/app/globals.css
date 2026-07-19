@@ -10,7 +10,8 @@
   --color-ink: #111827;
   --color-ink-soft: #1f2937;
   --color-ink-muted: #6b7280;
-  --color-ink-faint: #9ca3af;
+  /* 4.76:1 on white — faint text stays WCAG AA readable */
+  --color-ink-faint: #64748b;
   --color-cream: #fafafc;
   --color-cream-dim: #f3f4f8;
   --color-line: #e8e9f0;
@@ -86,12 +87,56 @@
   to { transform: rotate(0deg) scale(1); opacity: 1; }
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--color-cream);
   color: var(--color-ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Anchored sections land below the fixed glass nav */
+section[id],
+[id="features"],
+[id="showcase"] {
+  scroll-margin-top: 5.5rem;
+}
+
+/* Every clickable affordance behaves like one */
+button:not(:disabled),
+[role="button"],
+select,
+summary {
+  cursor: pointer;
+}
+
+/* Visible keyboard focus everywhere, without hurting mouse users */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip link: hidden until keyboard-focused */
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 16px;
+  z-index: 100;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--color-ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  transition: top 0.2s ease;
+}
+.skip-link:focus-visible {
+  top: 12px;
 }
 
 ::selection {
@@ -138,8 +183,17 @@ body {
   border: 1px solid transparent;
 }
 
+/* Blanket reduced-motion: loops stop, transitions become instant.
+   Framer Motion honors this on its own; this covers the CSS layer. */
 @media (prefers-reduced-motion: reduce) {
-  .text-gradient, .bg-gradient-animated { animation: none; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Glass surface for navs/overlays */

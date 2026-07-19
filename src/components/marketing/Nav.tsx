@@ -54,7 +54,13 @@ export function Nav() {
             onMouseEnter={() => setSolutionsOpen(true)}
             onMouseLeave={() => setSolutionsOpen(false)}
           >
-            <button className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium text-ink-muted transition hover:text-ink">
+            {/* click/tap toggle too — hover alone excludes touch devices */}
+            <button
+              onClick={() => setSolutionsOpen((o) => !o)}
+              aria-expanded={solutionsOpen}
+              aria-haspopup="true"
+              className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium text-ink-muted transition hover:text-ink"
+            >
               Solutions
               <motion.span animate={{ rotate: solutionsOpen ? 180 : 0 }}>
                 <ChevronDown className="h-3.5 w-3.5" />

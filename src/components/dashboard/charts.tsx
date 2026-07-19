@@ -96,8 +96,8 @@ export function TrendChart({ data }: { data: DayPoint[] }) {
           {/* recessive grid */}
           {ticks.map((t) => (
             <g key={t}>
-              <line x1={PAD.left} x2={W - PAD.right} y1={y(t)} y2={y(t)} stroke="#e7e7e2" strokeWidth="1" />
-              <text x={PAD.left - 8} y={y(t) + 3.5} textAnchor="end" fontSize="10" fill="#8a8aa0">
+              <line x1={PAD.left} x2={W - PAD.right} y1={y(t)} y2={y(t)} stroke="#e8e9f0" strokeWidth="1" />
+              <text x={PAD.left - 8} y={y(t) + 3.5} textAnchor="end" fontSize="10" fill="#64748b">
                 {t}
               </text>
             </g>
@@ -105,7 +105,7 @@ export function TrendChart({ data }: { data: DayPoint[] }) {
 
           {/* x labels: first / middle / last */}
           {[0, Math.floor(data.length / 2), data.length - 1].map((i) => (
-            <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize="10" fill="#8a8aa0">
+            <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize="10" fill="#64748b">
               {data[i] ? fmtDay(data[i].date) : ""}
             </text>
           ))}
@@ -117,10 +117,10 @@ export function TrendChart({ data }: { data: DayPoint[] }) {
           {/* direct labels at line ends */}
           {data.length > 1 && (
             <>
-              <text x={x(data.length - 1) - 4} y={y(data[data.length - 1].impressions) - 8} textAnchor="end" fontSize="10" fontWeight="600" fill="#55556b">
+              <text x={x(data.length - 1) - 4} y={y(data[data.length - 1].impressions) - 8} textAnchor="end" fontSize="10" fontWeight="600" fill="#6b7280">
                 {data[data.length - 1].impressions}
               </text>
-              <text x={x(data.length - 1) - 4} y={y(data[data.length - 1].clicks) - 8} textAnchor="end" fontSize="10" fontWeight="600" fill="#55556b">
+              <text x={x(data.length - 1) - 4} y={y(data[data.length - 1].clicks) - 8} textAnchor="end" fontSize="10" fontWeight="600" fill="#6b7280">
                 {data[data.length - 1].clicks}
               </text>
             </>
@@ -129,7 +129,7 @@ export function TrendChart({ data }: { data: DayPoint[] }) {
           {/* crosshair + markers on hover */}
           {hover !== null && data[hover] && (
             <g pointerEvents="none">
-              <line x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={PAD.top + ih} stroke="#55556b" strokeWidth="1" strokeDasharray="3 3" />
+              <line x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={PAD.top + ih} stroke="#6b7280" strokeWidth="1" strokeDasharray="3 3" />
               <circle cx={x(hover)} cy={y(data[hover].impressions)} r="4" fill={SERIES_COLORS.impressions} stroke="#ffffff" strokeWidth="2" />
               <circle cx={x(hover)} cy={y(data[hover].clicks)} r="4" fill={SERIES_COLORS.clicks} stroke="#ffffff" strokeWidth="2" />
             </g>
