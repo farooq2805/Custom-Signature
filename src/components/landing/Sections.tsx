@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { SignatureCard } from "@/components/signature/SignatureCard";
 import { DEFAULT_SIGNATURE } from "@/lib/templates";
+import { MagneticButton, TiltCard } from "./interactions";
 
 const EASE = [0.21, 0.65, 0.32, 0.95] as const;
 
@@ -212,7 +213,7 @@ export function ProductShowcase() {
         />
 
         <div className="relative mx-auto min-h-[480px] max-w-4xl">
-          {/* main editor window */}
+          {/* main editor window — tilts toward the cursor like a held card */}
           <Reveal from="scale">
             <motion.div
               animate={reduce ? {} : { y: [0, -8, 0] }}
@@ -220,9 +221,11 @@ export function ProductShowcase() {
               className="mx-auto max-w-xl"
               style={{ rotate: -1 }}
             >
-              <Window label="app.sigcraft.com/editor">
-                <SignatureCard data={DEFAULT_SIGNATURE} className="!border-0 !p-2 !shadow-none" />
-              </Window>
+              <TiltCard maxTilt={7}>
+                <Window label="app.sigcraft.com/editor">
+                  <SignatureCard data={DEFAULT_SIGNATURE} className="!border-0 !p-2 !shadow-none" />
+                </Window>
+              </TiltCard>
             </motion.div>
           </Reveal>
 
@@ -572,14 +575,16 @@ export function FinalCTA() {
             transition={{ duration: 0.6, delay: 0.3, ease: EASE }}
             className="mt-10 flex flex-wrap justify-center gap-4"
           >
-            <motion.span whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <Link
-                href="/signup"
-                className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-base font-semibold text-ink shadow-[0_16px_40px_rgb(17_24_39/0.25)] transition hover:bg-cream"
-              >
-                Get Started Free <ArrowRight className="h-4 w-4" />
-              </Link>
-            </motion.span>
+            <MagneticButton>
+              <motion.span whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-base font-semibold text-ink shadow-[0_16px_40px_rgb(17_24_39/0.25)] transition hover:bg-cream"
+                >
+                  Get Started Free <ArrowRight className="h-4 w-4" />
+                </Link>
+              </motion.span>
+            </MagneticButton>
             <motion.span whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
               <Link
                 href="/pricing"

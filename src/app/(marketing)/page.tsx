@@ -6,6 +6,7 @@ import {
   HowItWorks,
   ProductShowcase,
 } from "@/components/landing/Sections";
+import { StickyCtaBar } from "@/components/landing/interactions";
 
 export default function LandingPage() {
   return (
@@ -16,6 +17,7 @@ export default function LandingPage() {
       <HowItWorks />
       <Benefits />
       <FinalCTA />
+      <StickyCtaBar />
     </>
   );
 }

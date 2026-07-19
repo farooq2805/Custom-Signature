@@ -9,6 +9,8 @@
  */
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   motion,
   useMotionValue,
@@ -16,6 +18,8 @@ import {
   useSpring,
   useTransform,
 } from "framer-motion";
+import { MagneticButton, TiltCard } from "./interactions";
+import { useSigStore } from "@/lib/store";
 import {
   ArrowRight,
   BadgeCheck,
@@ -79,35 +83,78 @@ function MiniDashboard() {
   );
 }
 
-function MiniSignature() {
+export interface HeroPersona {
+  name: string;
+  company: string;
+  color: string;
+}
+
+const DEFAULT_PERSONA: HeroPersona = {
+  name: "Alex Rivera",
+  company: "Northwind Labs",
+  color: "#5b5bf7",
+};
+
+function initialsOf(name: string) {
   return (
-    <div className="glass-card w-[280px] rounded-3xl p-4">
-      <div className="flex items-center gap-3">
-        <div className="bg-gradient-accent flex h-11 w-11 items-center justify-center rounded-2xl font-display text-sm font-bold text-white">
-          AR
-        </div>
-        <div>
-          <p className="flex items-center gap-1 text-[13px] font-semibold text-ink">
-            Alex Rivera <BadgeCheck className="h-3.5 w-3.5 text-accent" />
-          </p>
-          <p className="text-[11px] text-ink-muted">CEO · Northwind Labs</p>
-        </div>
-      </div>
-      <div className="mt-3 flex items-center gap-1.5">
-        {[Globe, Linkedin, Instagram].map((Icon, i) => (
-          <motion.span
-            key={i}
-            whileHover={{ scale: 1.2, y: -2 }}
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-line bg-white text-ink-muted"
+    name
+      .split(" ")
+      .map((w) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "AR"
+  );
+}
+
+function MiniSignature({ persona }: { persona: HeroPersona }) {
+  const name = persona.name.trim() || DEFAULT_PERSONA.name;
+  const company = persona.company.trim() || DEFAULT_PERSONA.company;
+  return (
+    <TiltCard>
+      <div className="glass-card w-[280px] rounded-3xl p-4">
+        <div className="flex items-center gap-3">
+          <motion.div
+            key={persona.color + initialsOf(name)}
+            initial={{ scale: 0.7, rotate: -12, opacity: 0 }}
+            animate={{ scale: 1, rotate: 0, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 18 }}
+            className="flex h-11 w-11 items-center justify-center rounded-2xl font-display text-sm font-bold text-white"
+            style={{ background: persona.color }}
           >
-            <Icon className="h-3 w-3" />
-          </motion.span>
-        ))}
-        <span className="sig-cta-pulse ml-auto rounded-full bg-accent px-3.5 py-1.5 text-[11px] font-semibold text-white">
-          Book a Demo →
-        </span>
+            {initialsOf(name)}
+          </motion.div>
+          <div>
+            <motion.p
+              key={name}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-1 text-[13px] font-semibold text-ink"
+            >
+              {name} <BadgeCheck className="h-3.5 w-3.5" style={{ color: persona.color }} />
+            </motion.p>
+            <p className="text-[11px] text-ink-muted">CEO · {company}</p>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-1.5">
+          {[Globe, Linkedin, Instagram].map((Icon, i) => (
+            <motion.span
+              key={i}
+              whileHover={{ scale: 1.2, y: -2 }}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-line bg-white text-ink-muted"
+            >
+              <Icon className="h-3 w-3" />
+            </motion.span>
+          ))}
+          <span
+            className="sig-cta-pulse ml-auto rounded-full px-3.5 py-1.5 text-[11px] font-semibold text-white"
+            style={{ background: persona.color }}
+          >
+            Book a Demo →
+          </span>
+        </div>
       </div>
-    </div>
+    </TiltCard>
   );
 }
 
@@ -240,7 +287,7 @@ function FloatLayer({
   );
 }
 
-function Showcase() {
+function Showcase({ persona }: { persona: HeroPersona }) {
   const rawX = useMotionValue(0);
   const rawY = useMotionValue(0);
   const mx = useSpring(rawX, { stiffness: 50, damping: 20 });
@@ -291,7 +338,7 @@ function Showcase() {
       </FloatLayer>
 
       <FloatLayer depth={16} mx={mx} my={my} className="right-0 top-24" delay={0.7} bob={12} duration={6} rotate={2}>
-        <MiniSignature />
+        <MiniSignature persona={persona} />
       </FloatLayer>
 
       <FloatLayer depth={22} mx={mx} my={my} className="left-0 bottom-24" delay={0.9} bob={10} duration={5.5} rotate={-2}>
@@ -324,7 +371,86 @@ function Showcase() {
 
 const CUSTOMER_LOGOS = ["Northwind", "Vantage", "Beacon", "Keystone", "Meridian"];
 
+const PERSONA_COLORS = ["#5b5bf7", "#0d9488", "#b45309", "#dc2626", "#8b7dff"];
+
+/** Inline "make it yours" panel: typing updates the floating signature live,
+ *  then carries the personalization straight into the editor — the visitor
+ *  has already invested in their signature before ever signing up. */
+function PersonaPanel({
+  persona,
+  onChange,
+}: {
+  persona: HeroPersona;
+  onChange: (p: HeroPersona) => void;
+}) {
+  const router = useRouter();
+  const update = useSigStore((s) => s.update);
+
+  function continueInEditor() {
+    update({
+      name: persona.name.trim() || DEFAULT_PERSONA.name,
+      company: persona.company.trim() || DEFAULT_PERSONA.company,
+      brandColor: persona.color,
+    });
+    router.push("/editor");
+  }
+
+  return (
+    <div className="glass-card mt-10 max-w-lg rounded-3xl p-5">
+      <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-accent">
+        <Sparkles className="h-3.5 w-3.5" /> Try it — watch the card change
+      </p>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <label className="flex-1">
+          <span className="sr-only">Your name</span>
+          <input
+            value={persona.name}
+            onChange={(e) => onChange({ ...persona, name: e.target.value })}
+            placeholder="Your name"
+            maxLength={40}
+            className="w-full rounded-xl border border-line bg-white/80 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+          />
+        </label>
+        <label className="flex-1">
+          <span className="sr-only">Company</span>
+          <input
+            value={persona.company}
+            onChange={(e) => onChange({ ...persona, company: e.target.value })}
+            placeholder="Company"
+            maxLength={40}
+            className="w-full rounded-xl border border-line bg-white/80 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+          />
+        </label>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {PERSONA_COLORS.map((c) => (
+            <motion.button
+              key={c}
+              whileHover={{ scale: 1.18 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => onChange({ ...persona, color: c })}
+              aria-label={`Brand color ${c}`}
+              className={`h-7 w-7 rounded-full border-2 transition ${
+                persona.color === c ? "border-ink" : "border-transparent"
+              }`}
+              style={{ background: c }}
+            />
+          ))}
+        </div>
+        <button
+          onClick={continueInEditor}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent transition hover:gap-2.5"
+        >
+          Continue in the editor <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function Hero() {
+  const [persona, setPersona] = useState<HeroPersona>(DEFAULT_PERSONA);
   return (
     <section className="relative overflow-hidden px-6 pb-28 pt-36 sm:pt-44">
       {/* ambient page glow */}
@@ -368,14 +494,16 @@ export function Hero() {
           </motion.p>
 
           <motion.div {...stage(3)} className="mt-9 flex flex-wrap items-center gap-4">
-            <motion.span whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-              <Link
-                href="/signup"
-                className="bg-gradient-accent inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-semibold text-white shadow-[--shadow-glow] transition hover:brightness-110"
-              >
-                Start Free <ArrowRight className="h-4 w-4" />
-              </Link>
-            </motion.span>
+            <MagneticButton>
+              <motion.span whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                <Link
+                  href="/signup"
+                  className="bg-gradient-accent inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-semibold text-white shadow-[--shadow-glow] transition hover:brightness-110"
+                >
+                  Start Free <ArrowRight className="h-4 w-4" />
+                </Link>
+              </motion.span>
+            </MagneticButton>
             <motion.span whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Link
                 href="/#showcase"
@@ -399,7 +527,11 @@ export function Hero() {
             <span>7-day free trial · No card required</span>
           </motion.div>
 
-          <motion.div {...stage(5)} className="mt-10">
+          <motion.div {...stage(5)}>
+            <PersonaPanel persona={persona} onChange={setPersona} />
+          </motion.div>
+
+          <motion.div {...stage(6)} className="mt-10">
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-ink-faint">
               Trusted by 12,000+ teams
             </p>
@@ -414,7 +546,7 @@ export function Hero() {
         </div>
 
         <div className="mx-auto hidden w-full sm:block">
-          <Showcase />
+          <Showcase persona={persona} />
         </div>
       </div>
     </section>
