@@ -1,41 +1,40 @@
 "use client";
 
 /**
- * Landing hero — immersive, Stripe/Linear-grade.
- * Left: staged copy reveal. Right: floating glassmorphism product showcase
- * (dashboard, live signature, analytics, profile, CTA widget, notifications,
- * floating icons) with continuous float loops, glowing background blobs and
- * mouse parallax across three depth layers.
+ * Hero — centered copy over a flowing signature showcase, modeled on the
+ * customesignature.com hero but built live instead of a pre-rendered video:
+ *
+ *  - An email compose window sits center stage; a continuous marquee of
+ *    industry signature cards (Real Estate, Healthcare, Tech Founder,
+ *    Finance, Agency, Consulting, Sales, Product) flows straight through
+ *    its signature slot, with a glowing selection ring at the center.
+ *  - The strip pauses on hover; every card is a real DOM component.
+ *  - Below it, the personalization panel: type your name, watch a live
+ *    card become yours, carry it into the editor.
  */
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  motion,
-  useMotionValue,
-  useReducedMotion,
-  useSpring,
-  useTransform,
-} from "framer-motion";
-import { MagneticButton, TiltCard } from "./interactions";
-import { useSigStore } from "@/lib/store";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
-  Bell,
-  CalendarCheck,
+  Facebook,
   Globe,
   Instagram,
   Linkedin,
-  MousePointerClick,
   Play,
+  Send,
   ShieldCheck,
   Sparkles,
   Star,
-  TrendingUp,
-  Zap,
+  Trash2,
+  Undo2,
+  Youtube,
 } from "lucide-react";
+import { MagneticButton, TiltCard } from "./interactions";
+import { useSigStore } from "@/lib/store";
 
 const EASE = [0.21, 0.65, 0.32, 0.95] as const;
 
@@ -46,44 +45,174 @@ const stage = (i: number) => ({
 });
 
 /* ------------------------------------------------------------------ */
-/* Showcase cards                                                      */
+/* Industry example cards (the flowing strip)                          */
 /* ------------------------------------------------------------------ */
 
-function MiniDashboard() {
+interface ExamplePersona {
+  industry: string;
+  name: string;
+  title: string;
+  company: string;
+  domain: string;
+  color: string;
+}
+
+const EXAMPLES: ExamplePersona[] = [
+  { industry: "Real Estate", name: "Maya Bennett", title: "Principal Broker", company: "Keystone Realty", domain: "keystonerealty.com", color: "#b45309" },
+  { industry: "Healthcare", name: "Dr. Sarah Chen", title: "Cardiologist", company: "Beacon Health", domain: "beaconhealth.com", color: "#0284c7" },
+  { industry: "Tech Founder", name: "Alex Rivera", title: "Co-founder & CEO", company: "Northwind Labs", domain: "northwindlabs.com", color: "#5b5bf7" },
+  { industry: "Finance", name: "James Okafor", title: "Wealth Advisor", company: "Vantage Capital", domain: "vantagecap.com", color: "#0f766e" },
+  { industry: "Agency", name: "Lena Torres", title: "Creative Director", company: "Studio Meridian", domain: "studiomeridian.co", color: "#8b7dff" },
+  { industry: "Consulting", name: "David Kim", title: "Managing Partner", company: "Harbor & Co.", domain: "harborco.com", color: "#db2777" },
+  { industry: "Sales", name: "Marcus Webb", title: "Head of Sales", company: "Atlas Outbound", domain: "atlasoutbound.io", color: "#dc2626" },
+  { industry: "Product", name: "Priya Nair", title: "Head of Product", company: "Fern & Field", domain: "fernandfield.com", color: "#0d9488" },
+];
+
+function initialsOf(name: string) {
   return (
-    <div className="glass-card w-[300px] rounded-3xl p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-[13px] font-semibold text-ink">Signature performance</p>
-        <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent">
-          Live
-        </span>
-      </div>
-      <div className="mb-4 grid grid-cols-2 gap-2.5">
-        <div className="rounded-2xl bg-white/70 p-3">
-          <p className="text-[10px] font-medium text-ink-muted">Impressions</p>
-          <p className="font-display text-lg font-bold text-ink">4,812</p>
+    name
+      .replace(/^Dr\.\s*/i, "")
+      .split(" ")
+      .map((w) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "AR"
+  );
+}
+
+const RAIL_ICONS = [Globe, Instagram, Linkedin, Facebook, Youtube];
+
+/** One flowing signature card: icon rail · identity · slanted avatar. */
+function ExampleCard({ p }: { p: ExamplePersona }) {
+  return (
+    <div className="group/card relative w-[320px] shrink-0 rounded-2xl border border-line bg-white p-4 shadow-[--shadow-card] transition-transform duration-300 hover:scale-[1.04] hover:shadow-[--shadow-pop]">
+      <span
+        className="absolute -top-2.5 left-4 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white"
+        style={{ background: p.color }}
+      >
+        {p.industry}
+      </span>
+      <div className="flex items-center gap-3.5">
+        {/* vertical social rail */}
+        <div className="flex flex-col gap-1.5 rounded-xl border border-line p-1.5">
+          {RAIL_ICONS.map((Icon, i) => (
+            <span
+              key={i}
+              className="flex h-5 w-5 items-center justify-center text-ink-faint transition-colors group-hover/card:text-ink"
+              style={{ transitionDelay: `${i * 40}ms` }}
+            >
+              <Icon className="h-3 w-3" />
+            </span>
+          ))}
         </div>
-        <div className="rounded-2xl bg-white/70 p-3">
-          <p className="text-[10px] font-medium text-ink-muted">CTA clicks</p>
-          <p className="font-display text-lg font-bold text-ink">377</p>
+        {/* identity */}
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-base font-bold tracking-tight" style={{ color: p.color }}>
+            {p.company}
+          </p>
+          <p className="mt-1 flex items-center gap-1 text-[13px] font-semibold text-ink">
+            {p.name}
+            <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#1d9bf0]" />
+          </p>
+          <p className="text-[11px] text-ink-muted">{p.title}</p>
+          <p className="mt-1 truncate text-[10.5px] text-ink-faint">
+            {p.name.split(" ")[0].toLowerCase()}@{p.domain}
+          </p>
+          <p className="truncate text-[10.5px] text-ink-faint">www.{p.domain}</p>
         </div>
-      </div>
-      <div className="flex h-16 items-end gap-1">
-        {[34, 48, 40, 58, 52, 70, 64, 82, 76, 92, 86, 100].map((h, i) => (
-          <motion.span
-            key={i}
-            initial={{ height: 0 }}
-            animate={{ height: `${h}%` }}
-            transition={{ delay: 0.9 + i * 0.05, duration: 0.5, ease: EASE }}
-            className="flex-1 rounded-t-[3px] bg-gradient-to-t from-accent to-violet opacity-90"
-          />
-        ))}
+        {/* slanted avatar block, echoing the reference's diagonal photo crop */}
+        <div className="relative h-[76px] w-[64px] shrink-0 overflow-hidden">
+          <div
+            className="absolute inset-y-0 left-1 right-1 flex -skew-x-[10deg] items-center justify-center rounded-lg font-display text-lg font-bold text-white"
+            style={{ background: `linear-gradient(135deg, ${p.color}, ${p.color}99)` }}
+          >
+            <span className="skew-x-[10deg]">{initialsOf(p.name)}</span>
+          </div>
+          <div className="absolute inset-y-0 -right-0.5 w-1.5 -skew-x-[10deg] rounded bg-white/70" />
+        </div>
       </div>
     </div>
   );
 }
 
-export interface HeroPersona {
+/* ------------------------------------------------------------------ */
+/* The flowing showcase: marquee through an email compose window       */
+/* ------------------------------------------------------------------ */
+
+function SignatureFlow() {
+  return (
+    <div className="relative mx-auto mt-16 w-full max-w-6xl select-none">
+      {/* email compose window, centered beneath the strip */}
+      <div className="relative z-0 mx-auto max-w-2xl rounded-3xl border border-line bg-white shadow-[--shadow-pop]">
+        <div className="flex items-center justify-between border-b border-line px-6 py-4">
+          <div className="flex items-center gap-3">
+            <span className="bg-gradient-accent flex h-9 w-9 items-center justify-center rounded-full font-display text-sm font-bold text-white">
+              S
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-ink">SigCraft</p>
+              <p className="text-xs text-ink-faint">to: jordan@prospect.com</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-ink-faint">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-line"><Undo2 className="h-3.5 w-3.5" /></span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-line"><Trash2 className="h-3.5 w-3.5" /></span>
+          </div>
+        </div>
+        <div className="px-6 pt-5">
+          <p className="text-sm text-ink-muted">Hey Jordan,</p>
+          <div className="mt-3 h-2 w-2/5 rounded-full bg-cream-dim" />
+          <div className="mt-2 h-2 w-3/5 rounded-full bg-cream-dim" />
+          <p className="mt-4 text-sm text-ink-muted">Best,</p>
+        </div>
+        {/* signature slot the strip flows through */}
+        <div className="h-[150px]" aria-hidden />
+        <div className="flex items-center justify-between border-t border-line px-6 py-3.5">
+          <div className="flex items-center gap-2.5">
+            {/* live toggle */}
+            <span className="relative inline-flex h-6 w-11 items-center rounded-full bg-accent">
+              <motion.span
+                className="absolute h-5 w-5 rounded-full bg-white shadow"
+                animate={{ x: [3, 23, 23, 3] }}
+                transition={{ duration: 6, times: [0, 0.12, 0.88, 1], repeat: Infinity, ease: "easeInOut" }}
+              />
+            </span>
+            <span className="text-sm font-medium text-ink">SigCraft</span>
+          </div>
+          <span className="flex items-center gap-2 rounded-full border border-line px-5 py-2 text-sm font-semibold text-ink">
+            <Send className="h-3.5 w-3.5" /> Send
+          </span>
+        </div>
+      </div>
+
+      {/* the flowing strip — centered on the signature slot */}
+      <div className="absolute inset-x-0 top-[63%] z-10 -translate-y-1/2 overflow-hidden py-8 [mask-image:linear-gradient(90deg,transparent,black_8%,black_92%,transparent)]">
+        <div className="marquee-row flex w-max gap-6 pr-6">
+          {[...EXAMPLES, ...EXAMPLES].map((p, i) => (
+            <ExampleCard key={`${p.company}-${i}`} p={p} />
+          ))}
+        </div>
+      </div>
+
+      {/* glowing selection ring, sharing the strip's center — cards flow through it */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-[63%] z-20 h-[158px] w-[348px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-accent"
+        style={{
+          boxShadow:
+            "0 0 0 4px rgb(91 91 247 / 0.15), 0 0 32px rgb(91 91 247 / 0.35), inset 0 0 24px rgb(91 91 247 / 0.06)",
+        }}
+      />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Personalization panel (kept from the previous hero)                 */
+/* ------------------------------------------------------------------ */
+
+interface HeroPersona {
   name: string;
   company: string;
   color: string;
@@ -95,24 +224,14 @@ const DEFAULT_PERSONA: HeroPersona = {
   color: "#5b5bf7",
 };
 
-function initialsOf(name: string) {
-  return (
-    name
-      .split(" ")
-      .map((w) => w[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "AR"
-  );
-}
+const PERSONA_COLORS = ["#5b5bf7", "#0d9488", "#b45309", "#dc2626", "#8b7dff"];
 
-function MiniSignature({ persona }: { persona: HeroPersona }) {
+function LiveMiniCard({ persona }: { persona: HeroPersona }) {
   const name = persona.name.trim() || DEFAULT_PERSONA.name;
   const company = persona.company.trim() || DEFAULT_PERSONA.company;
   return (
     <TiltCard>
-      <div className="glass-card w-[280px] rounded-3xl p-4">
+      <div className="glass-card w-[270px] rounded-3xl p-4">
         <div className="flex items-center gap-3">
           <motion.div
             key={persona.color + initialsOf(name)}
@@ -124,16 +243,16 @@ function MiniSignature({ persona }: { persona: HeroPersona }) {
           >
             {initialsOf(name)}
           </motion.div>
-          <div>
+          <div className="min-w-0">
             <motion.p
               key={name}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-1 text-[13px] font-semibold text-ink"
+              className="flex items-center gap-1 truncate text-[13px] font-semibold text-ink"
             >
-              {name} <BadgeCheck className="h-3.5 w-3.5" style={{ color: persona.color }} />
+              {name} <BadgeCheck className="h-3.5 w-3.5 shrink-0" style={{ color: persona.color }} />
             </motion.p>
-            <p className="text-[11px] text-ink-muted">CEO · {company}</p>
+            <p className="truncate text-[11px] text-ink-muted">CEO · {company}</p>
           </div>
         </div>
         <div className="mt-3 flex items-center gap-1.5">
@@ -158,231 +277,8 @@ function MiniSignature({ persona }: { persona: HeroPersona }) {
   );
 }
 
-function AnalyticsChip() {
-  return (
-    <div className="glass-card flex w-[190px] items-center gap-3 rounded-3xl p-4">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-success/10 text-success">
-        <TrendingUp className="h-4 w-4" />
-      </span>
-      <div>
-        <p className="text-[10px] font-medium text-ink-muted">Reply rate</p>
-        <p className="font-display text-base font-bold text-ink">
-          +38% <span className="text-[10px] font-semibold text-success">↑</span>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function ProfileChip() {
-  return (
-    <div className="glass-card flex w-[210px] items-center gap-3 rounded-3xl p-4">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet to-cyan text-[11px] font-bold text-white">
-        JW
-      </div>
-      <div>
-        <p className="text-[12px] font-semibold text-ink">Jordan Wu</p>
-        <p className="text-[10px] text-ink-muted">Verified sender</p>
-      </div>
-      <ShieldCheck className="ml-auto h-4 w-4 text-accent" />
-    </div>
-  );
-}
-
-function CtaWidget() {
-  return (
-    <div className="glass-card w-[200px] rounded-3xl p-4">
-      <p className="mb-2.5 flex items-center gap-1.5 text-[11px] font-semibold text-ink">
-        <CalendarCheck className="h-3.5 w-3.5 text-accent" /> Demo booked
-      </p>
-      <p className="text-[10px] leading-relaxed text-ink-muted">
-        Sarah from Vantage clicked your signature CTA
-      </p>
-      <span className="mt-2.5 block text-[10px] font-semibold text-accent">2 min ago</span>
-    </div>
-  );
-}
-
-function NotificationChip({ text, delay }: { text: string; delay: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 24 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay, duration: 0.6, ease: EASE }}
-      className="glass-card flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5"
-    >
-      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent-soft text-accent">
-        <Bell className="h-3 w-3" />
-      </span>
-      <p className="text-[11px] font-medium text-ink">{text}</p>
-    </motion.div>
-  );
-}
-
-function FloatingIcon({
-  icon: Icon,
-  className,
-  delay = 0,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  className: string;
-  delay?: number;
-}) {
-  return (
-    <motion.span
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay, type: "spring", stiffness: 200, damping: 15 }}
-      className={`glass-card absolute flex h-11 w-11 items-center justify-center rounded-2xl text-accent ${className}`}
-    >
-      <Icon className="h-4.5 w-4.5" />
-    </motion.span>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Floating showcase with mouse parallax                               */
-/* ------------------------------------------------------------------ */
-
-function FloatLayer({
-  children,
-  depth,
-  mx,
-  my,
-  className = "",
-  bob = 10,
-  duration = 6,
-  delay = 0,
-  rotate = 0,
-}: {
-  children: React.ReactNode;
-  depth: number;
-  mx: ReturnType<typeof useSpring>;
-  my: ReturnType<typeof useSpring>;
-  className?: string;
-  bob?: number;
-  duration?: number;
-  delay?: number;
-  rotate?: number;
-}) {
-  const reduce = useReducedMotion();
-  const x = useTransform(mx, (v: number) => v * depth);
-  const y = useTransform(my, (v: number) => v * depth);
-  return (
-    <motion.div style={{ x, y }} className={`absolute ${className}`}>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.85, y: 32 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ delay, duration: 0.8, ease: EASE }}
-      >
-        <motion.div
-          animate={reduce ? {} : { y: [0, -bob, 0], rotate: [rotate, rotate + 1, rotate] }}
-          transition={{ duration, repeat: Infinity, ease: "easeInOut", delay: delay + 0.8 }}
-          style={{ rotate }}
-        >
-          {children}
-        </motion.div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-function Showcase({ persona }: { persona: HeroPersona }) {
-  const rawX = useMotionValue(0);
-  const rawY = useMotionValue(0);
-  const mx = useSpring(rawX, { stiffness: 50, damping: 20 });
-  const my = useSpring(rawY, { stiffness: 50, damping: 20 });
-
-  function onMove(e: React.MouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    rawX.set(((e.clientX - rect.left) / rect.width - 0.5) * 2);
-    rawY.set(((e.clientY - rect.top) / rect.height - 0.5) * 2);
-  }
-
-  return (
-    <div
-      onMouseMove={onMove}
-      onMouseLeave={() => {
-        rawX.set(0);
-        rawY.set(0);
-      }}
-      className="relative h-[520px] w-full max-w-[560px] select-none"
-      aria-hidden
-    >
-      {/* glowing blobs */}
-      <div
-        className="absolute -left-16 top-6 h-72 w-72 rounded-full blur-3xl"
-        style={{
-          background: "radial-gradient(circle, rgb(91 91 247 / 0.35), transparent 70%)",
-          animation: "blob-pulse 7s ease-in-out infinite",
-        }}
-      />
-      <div
-        className="absolute -right-10 bottom-4 h-80 w-80 rounded-full blur-3xl"
-        style={{
-          background: "radial-gradient(circle, rgb(0 212 255 / 0.28), transparent 70%)",
-          animation: "blob-pulse 9s ease-in-out infinite 1.5s",
-        }}
-      />
-      <div
-        className="absolute left-1/3 top-1/2 h-64 w-64 rounded-full blur-3xl"
-        style={{
-          background: "radial-gradient(circle, rgb(139 125 255 / 0.3), transparent 70%)",
-          animation: "blob-pulse 8s ease-in-out infinite 3s",
-        }}
-      />
-
-      {/* depth layers: far (subtle shift) → near (strong shift) */}
-      <FloatLayer depth={8} mx={mx} my={my} className="left-6 top-2" delay={0.5} bob={8} duration={7}>
-        <MiniDashboard />
-      </FloatLayer>
-
-      <FloatLayer depth={16} mx={mx} my={my} className="right-0 top-24" delay={0.7} bob={12} duration={6} rotate={2}>
-        <MiniSignature persona={persona} />
-      </FloatLayer>
-
-      <FloatLayer depth={22} mx={mx} my={my} className="left-0 bottom-24" delay={0.9} bob={10} duration={5.5} rotate={-2}>
-        <AnalyticsChip />
-      </FloatLayer>
-
-      <FloatLayer depth={14} mx={mx} my={my} className="right-10 bottom-2" delay={1.05} bob={9} duration={6.5}>
-        <ProfileChip />
-      </FloatLayer>
-
-      <FloatLayer depth={26} mx={mx} my={my} className="left-1/2 top-1/2 -translate-x-1/2" delay={1.2} bob={12} duration={5} rotate={1}>
-        <CtaWidget />
-      </FloatLayer>
-
-      {/* notifications stack */}
-      <div className="absolute -right-2 top-0 flex flex-col gap-2">
-        <NotificationChip text="+12 CTA clicks today" delay={1.4} />
-        <NotificationChip text="Signature synced to Gmail" delay={1.6} />
-      </div>
-
-      {/* floating icons */}
-      <FloatingIcon icon={Zap} className="left-[46%] top-6" delay={1.5} />
-      <FloatingIcon icon={MousePointerClick} className="bottom-40 right-2" delay={1.7} />
-      <FloatingIcon icon={Sparkles} className="bottom-0 left-1/3" delay={1.9} />
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-
-const CUSTOMER_LOGOS = ["Northwind", "Vantage", "Beacon", "Keystone", "Meridian"];
-
-const PERSONA_COLORS = ["#5b5bf7", "#0d9488", "#b45309", "#dc2626", "#8b7dff"];
-
-/** Inline "make it yours" panel: typing updates the floating signature live,
- *  then carries the personalization straight into the editor — the visitor
- *  has already invested in their signature before ever signing up. */
-function PersonaPanel({
-  persona,
-  onChange,
-}: {
-  persona: HeroPersona;
-  onChange: (p: HeroPersona) => void;
-}) {
+function PersonaPanel() {
+  const [persona, setPersona] = useState<HeroPersona>(DEFAULT_PERSONA);
   const router = useRouter();
   const update = useSigStore((s) => s.update);
 
@@ -396,64 +292,68 @@ function PersonaPanel({
   }
 
   return (
-    <div className="glass-card mt-10 max-w-lg rounded-3xl p-5">
-      <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-accent">
-        <Sparkles className="h-3.5 w-3.5" /> Try it — watch the card change
-      </p>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <label className="flex-1">
-          <span className="sr-only">Your name</span>
-          <input
-            value={persona.name}
-            onChange={(e) => onChange({ ...persona, name: e.target.value })}
-            placeholder="Your name"
-            maxLength={40}
-            className="w-full rounded-xl border border-line bg-white/80 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
-          />
-        </label>
-        <label className="flex-1">
-          <span className="sr-only">Company</span>
-          <input
-            value={persona.company}
-            onChange={(e) => onChange({ ...persona, company: e.target.value })}
-            placeholder="Company"
-            maxLength={40}
-            className="w-full rounded-xl border border-line bg-white/80 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
-          />
-        </label>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          {PERSONA_COLORS.map((c) => (
-            <motion.button
-              key={c}
-              whileHover={{ scale: 1.18 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => onChange({ ...persona, color: c })}
-              aria-label={`Brand color ${c}`}
-              className={`h-7 w-7 rounded-full border-2 transition ${
-                persona.color === c ? "border-ink" : "border-transparent"
-              }`}
-              style={{ background: c }}
+    <div className="glass-card mx-auto mt-16 flex max-w-3xl flex-col items-center gap-7 rounded-3xl p-7 sm:flex-row">
+      <div className="flex-1">
+        <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-accent">
+          <Sparkles className="h-3.5 w-3.5" /> Now make it yours
+        </p>
+        <div className="flex flex-col gap-3">
+          <label>
+            <span className="sr-only">Your name</span>
+            <input
+              value={persona.name}
+              onChange={(e) => setPersona({ ...persona, name: e.target.value })}
+              placeholder="Your name"
+              maxLength={40}
+              className="w-full rounded-xl border border-line bg-white/80 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
             />
-          ))}
+          </label>
+          <label>
+            <span className="sr-only">Company</span>
+            <input
+              value={persona.company}
+              onChange={(e) => setPersona({ ...persona, company: e.target.value })}
+              placeholder="Company"
+              maxLength={40}
+              className="w-full rounded-xl border border-line bg-white/80 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+            />
+          </label>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              {PERSONA_COLORS.map((c) => (
+                <motion.button
+                  key={c}
+                  whileHover={{ scale: 1.18 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setPersona({ ...persona, color: c })}
+                  aria-label={`Brand color ${c}`}
+                  className={`h-7 w-7 rounded-full border-2 transition ${
+                    persona.color === c ? "border-ink" : "border-transparent"
+                  }`}
+                  style={{ background: c }}
+                />
+              ))}
+            </div>
+            <button
+              onClick={continueInEditor}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent transition hover:gap-2.5"
+            >
+              Continue in the editor <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-        <button
-          onClick={continueInEditor}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent transition hover:gap-2.5"
-        >
-          Continue in the editor <ArrowRight className="h-4 w-4" />
-        </button>
       </div>
+      <LiveMiniCard persona={persona} />
     </div>
   );
 }
 
+/* ------------------------------------------------------------------ */
+
 export function Hero() {
-  const [persona, setPersona] = useState<HeroPersona>(DEFAULT_PERSONA);
   return (
-    <section className="relative overflow-hidden px-6 pb-28 pt-36 sm:pt-44">
-      {/* ambient page glow */}
+    <section className="relative overflow-hidden px-6 pb-24 pt-36 sm:pt-40">
+      {/* ambient glow */}
       <div
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-[-220px] h-[560px] w-[1100px] -translate-x-1/2 rounded-full opacity-40 blur-3xl"
@@ -463,91 +363,84 @@ export function Hero() {
         }}
       />
 
-      <div className="relative mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-[1.05fr_1fr]">
-        <div>
-          <motion.div {...stage(0)}>
-            <span className="glass-card inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold text-ink-muted">
-              <Sparkles className="h-3.5 w-3.5 text-accent" />
-              The signature platform for modern teams
-              <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-bold text-accent">
-                NEW
-              </span>
-            </span>
-          </motion.div>
+      <div className="relative mx-auto max-w-6xl text-center">
+        <motion.div {...stage(0)}>
+          <span className="glass-card inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold text-ink-muted">
+            <Sparkles className="h-3.5 w-3.5 text-accent" />
+            Supercharge your email signature
+          </span>
+        </motion.div>
 
-          <motion.h1
-            {...stage(1)}
-            className="mt-7 font-display text-[2.9rem] font-semibold leading-[1.04] tracking-tight text-ink sm:text-[4rem]"
-          >
-            Every email you send,
-            <br />
-            <span className="text-gradient">working like a landing page</span>
-          </motion.h1>
+        <motion.h1
+          {...stage(1)}
+          className="mx-auto mt-7 max-w-3xl font-display text-[2.9rem] font-semibold leading-[1.04] tracking-tight text-ink sm:text-[4rem]"
+        >
+          Stand out in <span className="text-gradient">every inbox</span>
+        </motion.h1>
 
-          <motion.p
-            {...stage(2)}
-            className="mt-6 max-w-lg text-lg leading-relaxed text-ink-muted"
-          >
-            SigCraft turns your email signature into an animated, verified,
-            click-tracked asset — so every reply, intro, and follow-up quietly
-            books demos for you.
-          </motion.p>
+        <motion.p
+          {...stage(2)}
+          className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-ink-muted"
+        >
+          Animated, verified, click-tracked signatures — whatever your industry,
+          your email starts booking demos for you.
+        </motion.p>
 
-          <motion.div {...stage(3)} className="mt-9 flex flex-wrap items-center gap-4">
-            <MagneticButton>
-              <motion.span whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                <Link
-                  href="/signup"
-                  className="bg-gradient-accent inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-semibold text-white shadow-[--shadow-glow] transition hover:brightness-110"
-                >
-                  Start Free <ArrowRight className="h-4 w-4" />
-                </Link>
-              </motion.span>
-            </MagneticButton>
+        <motion.div {...stage(3)} className="mt-9 flex flex-wrap items-center justify-center gap-4">
+          <MagneticButton>
             <motion.span whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Link
-                href="/#showcase"
-                className="glass-card inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-semibold text-ink transition hover:bg-white"
+                href="/signup"
+                className="bg-gradient-accent inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-semibold text-white shadow-[--shadow-glow] transition hover:brightness-110"
               >
-                <Play className="h-4 w-4 text-accent" /> Watch it work
+                Get Started, Free <ArrowRight className="h-4 w-4" />
               </Link>
             </motion.span>
-          </motion.div>
+          </MagneticButton>
+          <motion.span whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+            <Link
+              href="/#showcase"
+              className="glass-card inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-semibold text-ink transition hover:bg-white"
+            >
+              <Play className="h-4 w-4 text-accent" /> See how it works
+            </Link>
+          </motion.span>
+        </motion.div>
 
-          <motion.div {...stage(4)} className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink-muted">
-            <span className="flex items-center gap-1.5">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-3.5 w-3.5 fill-warn text-warn" />
-              ))}
-              <strong className="text-ink">4.9</strong>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4 text-success" /> SOC 2 Type II
-            </span>
-            <span>7-day free trial · No card required</span>
-          </motion.div>
+        <motion.div
+          {...stage(4)}
+          className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-ink-muted"
+        >
+          <span className="flex items-center gap-1.5">
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} className="h-3.5 w-3.5 fill-warn text-warn" />
+            ))}
+            <strong className="text-ink">4.9</strong> on G2
+          </span>
+          <span className="hidden h-4 w-px bg-line sm:block" />
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck className="h-4 w-4 text-success" /> SOC 2 Type II
+          </span>
+          <span className="hidden h-4 w-px bg-line sm:block" />
+          <span>7-day free trial · No card required</span>
+        </motion.div>
 
-          <motion.div {...stage(5)}>
-            <PersonaPanel persona={persona} onChange={setPersona} />
-          </motion.div>
+        {/* the flowing showcase */}
+        <motion.div
+          initial={{ opacity: 0, y: 40, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.9, delay: 0.55, ease: EASE }}
+        >
+          <SignatureFlow />
+        </motion.div>
 
-          <motion.div {...stage(6)} className="mt-10">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-ink-faint">
-              Trusted by 12,000+ teams
-            </p>
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
-              {CUSTOMER_LOGOS.map((name) => (
-                <span key={name} className="font-display text-base font-semibold text-ink-faint">
-                  {name}
-                </span>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-
-        <div className="mx-auto hidden w-full sm:block">
-          <Showcase persona={persona} />
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 32 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.85, ease: EASE }}
+        >
+          <PersonaPanel />
+        </motion.div>
       </div>
     </section>
   );

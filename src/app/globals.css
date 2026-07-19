@@ -250,6 +250,15 @@ summary {
   animation: pulse-soft 2.6s ease-in-out infinite;
 }
 
+/* Hero signature strip: continuous flow, pauses while inspected */
+.marquee-row {
+  animation: marquee 45s linear infinite;
+  will-change: transform;
+}
+.marquee-row:hover {
+  animation-play-state: paused;
+}
+
 /* Hide scrollbar but keep scroll (template gallery) */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
