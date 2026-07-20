@@ -37,6 +37,8 @@ type Phase = "drift" | "sweep" | "reveal" | "settled";
 
 interface BoringSig {
   lines: string[];
+  /** real-world boring signature screenshot; text lines are the fallback */
+  img?: string;
   x: string; // left %
   y: string; // top %
   rotate: number;
@@ -45,13 +47,36 @@ interface BoringSig {
 }
 
 const BORING: BoringSig[] = [
-  { lines: ["Best regards,", "John Smith", "Sales Manager", "Tel: 555-0134"], x: "4%", y: "8%", rotate: -3, bob: 9, delay: 0 },
-  { lines: ["Thanks,", "Mary Johnson", "Account Executive"], x: "38%", y: "2%", rotate: 2, bob: 11, delay: 0.6 },
-  { lines: ["Sent from my iPhone"], x: "74%", y: "12%", rotate: -2, bob: 8, delay: 1.1 },
-  { lines: ["Kind regards,", "Bob Wilson", "Regional Director", "ext. 4402"], x: "10%", y: "58%", rotate: 2.5, bob: 10, delay: 0.3 },
-  { lines: ["--", "Dave Miller", "Consultant", "dave.m@aol.com"], x: "44%", y: "64%", rotate: -1.5, bob: 12, delay: 0.9 },
-  { lines: ["Regards,", "Susan Lee", "Office Admin"], x: "76%", y: "56%", rotate: 3, bob: 9, delay: 1.4 },
+  {
+    lines: ["Best regards,", "John Smith", "Sales Manager", "Tel: 555-0134"],
+    img: "https://haas.berkeley.edu/wp-content/uploads/email-opt@3x-1-768x975.png",
+    x: "3%", y: "6%", rotate: -3, bob: 9, delay: 0,
+  },
+  {
+    lines: ["Thanks,", "Mary Johnson", "Account Executive"],
+    img: "https://brand.illinois.edu/wp-content/uploads/2024/03/email-signature-header.png",
+    x: "37%", y: "2%", rotate: 2, bob: 11, delay: 0.6,
+  },
+  {
+    lines: ["Sent from my iPhone"],
+    img: "https://www.bybrand.io/blog/wp-content/uploads/2025/07/GmailWithPersonalEmail.png",
+    x: "72%", y: "8%", rotate: -2, bob: 8, delay: 1.1,
+  },
+  {
+    lines: ["Kind regards,", "Bob Wilson", "Regional Director", "ext. 4402"],
+    img: "https://bportaluri.com/wp-content/uploads/2019/10/maximo-communication-template-signature.png",
+    x: "8%", y: "56%", rotate: 2.5, bob: 10, delay: 0.3,
+  },
+  {
+    lines: ["--", "Dave Miller", "Consultant", "dave.m@aol.com"],
+    img: "https://www.ucalgary.ca/sites/default/files/styles/ucws_image_desktop/public/2025-12/Rex%2060th%20example_0.png?itok=Gn_idXj_",
+    x: "42%", y: "60%", rotate: -1.5, bob: 12, delay: 0.9,
+  },
+  { lines: ["Regards,", "Susan Lee", "Office Admin"], x: "75%", y: "58%", rotate: 3, bob: 9, delay: 1.4 },
 ];
+
+/** The animated signature that takes the stage after the sweep. */
+const REVEAL_GIF = "https://designmodo.com/wp-content/uploads/2024/08/email-signature-1.gif";
 
 function BoringCard({ sig, phase }: { sig: BoringSig; phase: Phase }) {
   const reduce = useReducedMotion();
@@ -80,13 +105,29 @@ function BoringCard({ sig, phase }: { sig: BoringSig; phase: Phase }) {
       <motion.div
         animate={reduce || leaving ? {} : { y: [0, -sig.bob, 0] }}
         transition={{ duration: 5 + sig.bob * 0.3, repeat: Infinity, ease: "easeInOut", delay: sig.delay }}
-        className="rounded-xl border border-white/10 bg-white/[0.05] px-5 py-4 backdrop-blur-sm"
+        className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.05] backdrop-blur-sm"
       >
-        {sig.lines.map((line) => (
-          <p key={line} className="font-mono text-[12px] leading-relaxed text-white/45">
-            {line}
-          </p>
-        ))}
+        {sig.img && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={sig.img}
+            alt=""
+            loading="lazy"
+            onError={(e) => {
+              // fall back to the text version if the screenshot won't load
+              e.currentTarget.parentElement!.querySelector("div")!.style.display = "block";
+              e.currentTarget.style.display = "none";
+            }}
+            className="block max-h-[130px] w-[230px] rounded-xl object-cover object-top opacity-80 grayscale-[45%]"
+          />
+        )}
+        <div className={sig.img ? "hidden px-5 py-4" : "px-5 py-4"}>
+          {sig.lines.map((line) => (
+            <p key={line} className="font-mono text-[12px] leading-relaxed text-white/45">
+              {line}
+            </p>
+          ))}
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -209,9 +250,22 @@ function TransformationStage() {
                     />
                   );
                 })}
-              {/* the real live card */}
-              <div className="relative rounded-3xl shadow-[0_0_60px_rgb(91_91_247/0.45)]">
-                <SignatureCard data={DEFAULT_SIGNATURE} />
+              {/* the animated signature takes the stage: the GIF example the
+                  platform produces, framed; falls back to the live card */}
+              <div className="relative overflow-hidden rounded-3xl bg-white p-2 shadow-[0_0_60px_rgb(91_91_247/0.45)]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={REVEAL_GIF}
+                  alt="Animated SigCraft email signature"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                    e.currentTarget.nextElementSibling?.classList.remove("hidden");
+                  }}
+                  className="block w-[430px] max-w-[76vw] rounded-2xl"
+                />
+                <div className="hidden">
+                  <SignatureCard data={DEFAULT_SIGNATURE} className="!border-0 !shadow-none" />
+                </div>
               </div>
             </motion.div>
           )}
