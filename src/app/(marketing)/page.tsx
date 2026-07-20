@@ -1,4 +1,5 @@
 import { Hero } from "@/components/landing/Hero";
+import { IndustryShowcase } from "@/components/landing/IndustryFlow";
 import {
   Benefits,
   Features,
@@ -20,6 +21,7 @@ export default function LandingPage() {
   return (
     <>
       <Hero />
+      <IndustryShowcase />
       <StatsBand />
       <Features />
       <ProductShowcase />

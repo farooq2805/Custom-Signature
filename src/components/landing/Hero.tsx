@@ -1,40 +1,27 @@
 "use client";
 
 /**
- * Hero — centered copy over a flowing signature showcase, modeled on the
- * customesignature.com hero but built live instead of a pre-rendered video:
+ * Dark cinematic hero — the transformation story, played once:
  *
- *  - An email compose window sits center stage; a continuous marquee of
- *    industry signature cards (Real Estate, Healthcare, Tech Founder,
- *    Finance, Agency, Consulting, Sales, Product) flows straight through
- *    its signature slot, with a glowing selection ring at the center.
- *  - The strip pauses on hover; every card is a real DOM component.
- *  - Below it, the personalization panel: type your name, watch a live
- *    card become yours, carry it into the editor.
+ *   Phase "drift"  (~3.5s): six boring plain-text signatures float on the
+ *                           dark stage, the way most emails end today.
+ *   Phase "sweep"  (~1.1s): a gradient beam sweeps left→right; each boring
+ *                           signature is blown away as the beam passes.
+ *   Phase "reveal" (~0.9s): our animated signature lands center stage with
+ *                           a glow burst.
+ *   Phase "settled":        the landing card is the real, live, hoverable
+ *                           SignatureCard — plus a replay control.
+ *
+ * prefers-reduced-motion skips straight to "settled".
  */
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import {
-  ArrowRight,
-  BadgeCheck,
-  Facebook,
-  Globe,
-  Instagram,
-  Linkedin,
-  Play,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Trash2,
-  Undo2,
-  Youtube,
-} from "lucide-react";
-import { MagneticButton, TiltCard } from "./interactions";
-import { useSigStore } from "@/lib/store";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, Play, RotateCcw, ShieldCheck, Sparkles, Star } from "lucide-react";
+import { SignatureCard } from "@/components/signature/SignatureCard";
+import { DEFAULT_SIGNATURE } from "@/lib/templates";
+import { MagneticButton } from "./interactions";
 
 const EASE = [0.21, 0.65, 0.32, 0.95] as const;
 
@@ -44,424 +31,258 @@ const stage = (i: number) => ({
   transition: { duration: 0.7, delay: 0.1 + i * 0.12, ease: EASE },
 });
 
-/* ------------------------------------------------------------------ */
-/* Industry example cards (the flowing strip)                          */
-/* ------------------------------------------------------------------ */
+type Phase = "drift" | "sweep" | "reveal" | "settled";
 
-interface ExamplePersona {
-  industry: string;
-  name: string;
-  title: string;
-  company: string;
-  domain: string;
-  color: string;
-  photo: string;
+/* ---------------- The boring signatures ---------------- */
+
+interface BoringSig {
+  lines: string[];
+  x: string; // left %
+  y: string; // top %
+  rotate: number;
+  bob: number;
+  delay: number;
 }
 
-/**
- * Recognizable-brand demo personas (fictional people, nominative brand
- * references — the same device the reference site uses with Zapier and
- * Squarespace) so the flowing signatures read instantly credible.
- */
-const EXAMPLES: ExamplePersona[] = [
-  { industry: "Sales", name: "Marcus Webb", title: "VP of Sales", company: "Salesforce", domain: "salesforce.com", color: "#00A1E0", photo: "https://randomuser.me/api/portraits/men/32.jpg" },
-  { industry: "Real Estate", name: "Maya Bennett", title: "Principal Broker", company: "Zillow", domain: "zillow.com", color: "#1277e1", photo: "https://randomuser.me/api/portraits/women/44.jpg" },
-  { industry: "Healthcare", name: "Dr. Sarah Chen", title: "Medical Director", company: "Pfizer", domain: "pfizer.com", color: "#0093d0", photo: "https://randomuser.me/api/portraits/women/65.jpg" },
-  { industry: "Tech Founder", name: "Alex Rivera", title: "Co-founder & CEO", company: "Shopify", domain: "shopify.com", color: "#5E8E3E", photo: "https://randomuser.me/api/portraits/men/85.jpg" },
-  { industry: "Finance", name: "James Okafor", title: "Managing Director", company: "Goldman Sachs", domain: "gs.com", color: "#1f4e79", photo: "https://randomuser.me/api/portraits/men/52.jpg" },
-  { industry: "Agency", name: "Lena Torres", title: "Creative Director", company: "Adobe", domain: "adobe.com", color: "#FA0F00", photo: "https://randomuser.me/api/portraits/women/68.jpg" },
-  { industry: "Consulting", name: "David Kim", title: "Managing Partner", company: "Deloitte", domain: "deloitte.com", color: "#26890d", photo: "https://randomuser.me/api/portraits/men/11.jpg" },
-  { industry: "Product", name: "Priya Nair", title: "Head of Product", company: "Netflix", domain: "netflix.com", color: "#E50914", photo: "https://randomuser.me/api/portraits/women/17.jpg" },
+const BORING: BoringSig[] = [
+  { lines: ["Best regards,", "John Smith", "Sales Manager", "Tel: 555-0134"], x: "4%", y: "8%", rotate: -3, bob: 9, delay: 0 },
+  { lines: ["Thanks,", "Mary Johnson", "Account Executive"], x: "38%", y: "2%", rotate: 2, bob: 11, delay: 0.6 },
+  { lines: ["Sent from my iPhone"], x: "74%", y: "12%", rotate: -2, bob: 8, delay: 1.1 },
+  { lines: ["Kind regards,", "Bob Wilson", "Regional Director", "ext. 4402"], x: "10%", y: "58%", rotate: 2.5, bob: 10, delay: 0.3 },
+  { lines: ["--", "Dave Miller", "Consultant", "dave.m@aol.com"], x: "44%", y: "64%", rotate: -1.5, bob: 12, delay: 0.9 },
+  { lines: ["Regards,", "Susan Lee", "Office Admin"], x: "76%", y: "56%", rotate: 3, bob: 9, delay: 1.4 },
 ];
 
-function initialsOf(name: string) {
-  return (
-    name
-      .replace(/^Dr\.\s*/i, "")
-      .split(" ")
-      .map((w) => w[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "AR"
-  );
-}
-
-const RAIL_ICONS = [Globe, Instagram, Linkedin, Facebook, Youtube];
-
-/** One flowing signature card: icon rail · identity · slanted avatar. */
-function ExampleCard({ p }: { p: ExamplePersona }) {
-  return (
-    <div className="group/card relative w-[320px] shrink-0 rounded-2xl border border-line bg-white p-4 shadow-[--shadow-card] transition-transform duration-300 hover:scale-[1.04] hover:shadow-[--shadow-pop]">
-      <span
-        className="absolute -top-2.5 left-4 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white"
-        style={{ background: p.color }}
-      >
-        {p.industry}
-      </span>
-      <div className="flex items-center gap-3.5">
-        {/* vertical social rail */}
-        <div className="flex flex-col gap-1.5 rounded-xl border border-line p-1.5">
-          {RAIL_ICONS.map((Icon, i) => (
-            <span
-              key={i}
-              className="flex h-5 w-5 items-center justify-center text-ink-faint transition-colors group-hover/card:text-ink"
-              style={{ transitionDelay: `${i * 40}ms` }}
-            >
-              <Icon className="h-3 w-3" />
-            </span>
-          ))}
-        </div>
-        {/* identity */}
-        <div className="min-w-0 flex-1">
-          {/* animated wordmark: shimmer sweep sells "this logo is alive/clickable" */}
-          <p
-            className="w-fit cursor-pointer font-display text-base font-bold tracking-tight transition-transform duration-200 hover:scale-105"
-            style={{
-              backgroundImage: `linear-gradient(100deg, ${p.color} 38%, #ffffff 50%, ${p.color} 62%)`,
-              backgroundSize: "220% 100%",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              color: "transparent",
-              animation: "shimmer 3s linear infinite",
-            }}
-          >
-            {p.company}
-          </p>
-          <p className="mt-1 flex items-center gap-1 text-[13px] font-semibold text-ink">
-            {p.name}
-            <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#1d9bf0]" />
-          </p>
-          <p className="text-[11px] text-ink-muted">{p.title}</p>
-          <p className="mt-1 truncate text-[10.5px] text-ink-faint">
-            {p.name.replace(/^Dr\.\s*/i, "").split(" ")[0].toLowerCase()}@{p.domain}
-          </p>
-          <p className="truncate text-[10.5px] text-ink-faint">www.{p.domain}</p>
-        </div>
-        {/* slanted portrait, echoing the reference's diagonal photo crop;
-            initials monogram shows if the photo can't load */}
-        <div className="relative h-[76px] w-[64px] shrink-0">
-          <div
-            className="absolute inset-y-0 left-1 right-1 flex -skew-x-[10deg] items-center justify-center overflow-hidden rounded-lg"
-            style={{ background: `linear-gradient(135deg, ${p.color}, ${p.color}99)` }}
-          >
-            <span className="skew-x-[10deg] font-display text-lg font-bold text-white">
-              {initialsOf(p.name)}
-            </span>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={p.photo}
-              alt=""
-              loading="lazy"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-              className="absolute inset-0 h-full w-full skew-x-[10deg] scale-[1.25] object-cover"
-            />
-          </div>
-          <div className="absolute inset-y-0 -right-0.5 w-1.5 -skew-x-[10deg] rounded bg-white/70" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* The flowing showcase: marquee through an email compose window       */
-/* ------------------------------------------------------------------ */
-
-/** Stop-and-go strip: each card glides into the ring, dwells, then advances. */
-function SteppedStrip() {
+function BoringCard({ sig, phase }: { sig: BoringSig; phase: Phase }) {
   const reduce = useReducedMotion();
-  const [pos, setPos] = useState(0); // 0..N — advances one card per beat
-  const [instant, setInstant] = useState(false);
-  const paused = useRef(false);
-  const CARD = 320 + 24; // card width + gap
-  const N = EXAMPLES.length;
-
-  useEffect(() => {
-    if (reduce) return;
-    const t = setInterval(() => {
-      if (!paused.current) setPos((p) => (p < N ? p + 1 : p));
-    }, 2600); // ~0.7s glide + ~1.9s dwell in the ring
-    return () => clearInterval(t);
-  }, [reduce, N]);
-
-  // after gliding onto the duplicate lap, snap back to origin invisibly
-  useEffect(() => {
-    if (!instant) return;
-    const id = requestAnimationFrame(() => setInstant(false));
-    return () => cancelAnimationFrame(id);
-  }, [instant]);
+  const leaving = phase !== "drift"; // once swept away, they stay gone
+  // beam travels left→right: cards exit in x order
+  const exitDelay = (parseFloat(sig.x) / 100) * 0.7;
 
   return (
-    <div
-      className="overflow-hidden py-8 [mask-image:linear-gradient(90deg,transparent,black_8%,black_92%,transparent)]"
-      onMouseEnter={() => (paused.current = true)}
-      onMouseLeave={() => (paused.current = false)}
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={
+        leaving
+          ? {
+              opacity: 0,
+              x: 140,
+              rotate: sig.rotate + 18,
+              scale: 0.8,
+              filter: "blur(10px)",
+              transition: { duration: 0.5, delay: exitDelay, ease: "easeIn" },
+            }
+          : { opacity: 1, scale: 1, transition: { duration: 0.8, delay: sig.delay * 0.3, ease: EASE } }
+      }
+      className="absolute"
+      style={{ left: sig.x, top: sig.y, rotate: sig.rotate }}
     >
       <motion.div
-        className="flex w-max gap-6 pr-6"
-        animate={{ x: -pos * CARD }}
-        transition={instant ? { duration: 0 } : { duration: 0.7, ease: EASE }}
-        onAnimationComplete={() => {
-          if (pos === N) {
-            setInstant(true);
-            setPos(0);
-          }
-        }}
-        // two lead-in cards keep the left side filled; padding centers the
-        // pos-th card exactly inside the selection ring
-        style={{ willChange: "transform", paddingLeft: `calc(50% - ${160 + 2 * CARD}px)` }}
+        animate={reduce || leaving ? {} : { y: [0, -sig.bob, 0] }}
+        transition={{ duration: 5 + sig.bob * 0.3, repeat: Infinity, ease: "easeInOut", delay: sig.delay }}
+        className="rounded-xl border border-white/10 bg-white/[0.05] px-5 py-4 backdrop-blur-sm"
       >
-        {[...EXAMPLES.slice(-2), ...EXAMPLES, ...EXAMPLES].map((p, i) => (
-          <ExampleCard key={`${p.company}-${i}`} p={p} />
+        {sig.lines.map((line) => (
+          <p key={line} className="font-mono text-[12px] leading-relaxed text-white/45">
+            {line}
+          </p>
         ))}
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
 
-function SignatureFlow() {
+/* ---------------- The transformation stage ---------------- */
+
+function TransformationStage() {
+  const reduce = useReducedMotion();
+  const [phase, setPhase] = useState<Phase>(reduce ? "settled" : "drift");
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const run = useCallback(() => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+    if (reduce) {
+      setPhase("settled");
+      return;
+    }
+    setPhase("drift");
+    timers.current.push(setTimeout(() => setPhase("sweep"), 3600));
+    timers.current.push(setTimeout(() => setPhase("reveal"), 4700));
+    timers.current.push(setTimeout(() => setPhase("settled"), 5600));
+  }, [reduce]);
+
+  useEffect(() => {
+    run();
+    const saved = timers.current;
+    return () => saved.forEach(clearTimeout);
+  }, [run]);
+
+  const revealed = phase === "reveal" || phase === "settled";
+
   return (
-    <div className="relative mx-auto mt-16 w-full max-w-6xl select-none">
-      {/* email compose window, centered beneath the strip */}
-      <div className="relative z-0 mx-auto max-w-2xl rounded-3xl border border-line bg-white shadow-[--shadow-pop]">
-        <div className="flex items-center justify-between border-b border-line px-6 py-4">
-          <div className="flex items-center gap-3">
-            <span className="bg-gradient-accent flex h-9 w-9 items-center justify-center rounded-full font-display text-sm font-bold text-white">
-              S
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-ink">SigCraft</p>
-              <p className="text-xs text-ink-faint">to: jordan@prospect.com</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 text-ink-faint">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-line"><Undo2 className="h-3.5 w-3.5" /></span>
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-line"><Trash2 className="h-3.5 w-3.5" /></span>
-          </div>
-        </div>
-        <div className="px-6 pt-5">
-          <p className="text-sm text-ink-muted">Hey Jordan,</p>
-          <div className="mt-3 h-2 w-2/5 rounded-full bg-cream-dim" />
-          <div className="mt-2 h-2 w-3/5 rounded-full bg-cream-dim" />
-          <p className="mt-4 text-sm text-ink-muted">Best,</p>
-        </div>
-        {/* signature slot the strip flows through */}
-        <div className="h-[150px]" aria-hidden />
-        <div className="flex items-center justify-between border-t border-line px-6 py-3.5">
-          <div className="flex items-center gap-2.5">
-            {/* live toggle */}
-            <span className="relative inline-flex h-6 w-11 items-center rounded-full bg-accent">
-              <motion.span
-                className="absolute h-5 w-5 rounded-full bg-white shadow"
-                animate={{ x: [3, 23, 23, 3] }}
-                transition={{ duration: 6, times: [0, 0.12, 0.88, 1], repeat: Infinity, ease: "easeInOut" }}
+    <div className="relative mx-auto h-[440px] w-full max-w-4xl">
+      {/* stage frame */}
+      <div className="absolute inset-0 overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03]">
+        {/* faint dot grid */}
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{
+            backgroundImage: "radial-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+
+        {/* phase caption */}
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={revealed ? "after" : "before"}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4 }}
+            className="absolute left-1/2 top-5 z-30 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/10 bg-white/[0.06] px-4 py-1.5 text-xs font-semibold tracking-wide text-white/60 backdrop-blur"
+          >
+            {revealed ? "Your email, with SigCraft" : "Every email today ends like this…"}
+          </motion.p>
+        </AnimatePresence>
+
+        {/* boring signatures */}
+        {BORING.map((sig) => (
+          <BoringCard key={sig.lines.join()} sig={sig} phase={phase} />
+        ))}
+
+        {/* sweep beam */}
+        <AnimatePresence>
+          {phase === "sweep" && (
+            <motion.div
+              initial={{ x: "-30%" }}
+              animate={{ x: "130%" }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.05, ease: "easeInOut" }}
+              className="absolute inset-y-[-10%] left-0 z-20 w-[26%] -skew-x-12"
+              style={{
+                background:
+                  "linear-gradient(90deg, transparent, rgb(91 91 247 / 0.45) 35%, rgb(0 212 255 / 0.55) 55%, transparent)",
+                filter: "blur(18px)",
+              }}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* our signature lands */}
+        <AnimatePresence>
+          {revealed && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.6, y: 60 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 180, damping: 18, delay: 0.1 }}
+              className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
+            >
+              {/* glow burst */}
+              <motion.div
+                aria-hidden
+                initial={{ opacity: 0.9, scale: 0.4 }}
+                animate={{ opacity: 0, scale: 2.4 }}
+                transition={{ duration: 1.1, ease: "easeOut", delay: 0.15 }}
+                className="absolute inset-0 rounded-full"
+                style={{ background: "radial-gradient(circle, rgb(0 212 255 / 0.5), rgb(91 91 247 / 0.3) 45%, transparent 70%)" }}
               />
-            </span>
-            <span className="text-sm font-medium text-ink">SigCraft</span>
-          </div>
-          <span className="flex items-center gap-2 rounded-full border border-line px-5 py-2 text-sm font-semibold text-ink">
-            <Send className="h-3.5 w-3.5" /> Send
-          </span>
-        </div>
+              {/* particles */}
+              {!reduce &&
+                [...Array(10)].map((_, i) => {
+                  const angle = (i / 10) * Math.PI * 2;
+                  return (
+                    <motion.span
+                      key={i}
+                      aria-hidden
+                      initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+                      animate={{
+                        opacity: 0,
+                        x: Math.cos(angle) * 190,
+                        y: Math.sin(angle) * 130,
+                        scale: 0.2,
+                      }}
+                      transition={{ duration: 0.9, ease: "easeOut", delay: 0.15 }}
+                      className="absolute left-1/2 top-1/2 h-2 w-2 rounded-full"
+                      style={{ background: i % 2 ? "#00d4ff" : "#8b7dff" }}
+                    />
+                  );
+                })}
+              {/* the real live card */}
+              <div className="relative rounded-3xl shadow-[0_0_60px_rgb(91_91_247/0.45)]">
+                <SignatureCard data={DEFAULT_SIGNATURE} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* the stepping strip — centered on the signature slot */}
-      <div className="absolute inset-x-0 top-[63%] z-10 -translate-y-1/2">
-        <SteppedStrip />
-      </div>
-
-      {/* glowing selection ring, sharing the strip's center — cards flow through it */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-[63%] z-20 h-[158px] w-[348px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-accent"
-        style={{
-          boxShadow:
-            "0 0 0 4px rgb(91 91 247 / 0.15), 0 0 32px rgb(91 91 247 / 0.35), inset 0 0 24px rgb(91 91 247 / 0.06)",
-        }}
-      />
+      {/* replay */}
+      <AnimatePresence>
+        {phase === "settled" && !reduce && (
+          <motion.button
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ delay: 0.6 }}
+            onClick={run}
+            className="absolute -bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/15 bg-white/[0.07] px-4 py-2 text-xs font-semibold text-white/70 backdrop-blur transition hover:bg-white/[0.14] hover:text-white"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Replay
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Personalization panel (kept from the previous hero)                 */
-/* ------------------------------------------------------------------ */
-
-interface HeroPersona {
-  name: string;
-  company: string;
-  color: string;
-}
-
-const DEFAULT_PERSONA: HeroPersona = {
-  name: "Alex Rivera",
-  company: "Northwind Labs",
-  color: "#5b5bf7",
-};
-
-const PERSONA_COLORS = ["#5b5bf7", "#0d9488", "#b45309", "#dc2626", "#8b7dff"];
-
-function LiveMiniCard({ persona }: { persona: HeroPersona }) {
-  const name = persona.name.trim() || DEFAULT_PERSONA.name;
-  const company = persona.company.trim() || DEFAULT_PERSONA.company;
-  return (
-    <TiltCard>
-      <div className="glass-card w-[270px] rounded-3xl p-4">
-        <div className="flex items-center gap-3">
-          <motion.div
-            key={persona.color + initialsOf(name)}
-            initial={{ scale: 0.7, rotate: -12, opacity: 0 }}
-            animate={{ scale: 1, rotate: 0, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 260, damping: 18 }}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl font-display text-sm font-bold text-white"
-            style={{ background: persona.color }}
-          >
-            {initialsOf(name)}
-          </motion.div>
-          <div className="min-w-0">
-            <motion.p
-              key={name}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-1 truncate text-[13px] font-semibold text-ink"
-            >
-              {name} <BadgeCheck className="h-3.5 w-3.5 shrink-0" style={{ color: persona.color }} />
-            </motion.p>
-            <p className="truncate text-[11px] text-ink-muted">CEO · {company}</p>
-          </div>
-        </div>
-        <div className="mt-3 flex items-center gap-1.5">
-          {[Globe, Linkedin, Instagram].map((Icon, i) => (
-            <motion.span
-              key={i}
-              whileHover={{ scale: 1.2, y: -2 }}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-line bg-white text-ink-muted"
-            >
-              <Icon className="h-3 w-3" />
-            </motion.span>
-          ))}
-          <span
-            className="sig-cta-pulse ml-auto rounded-full px-3.5 py-1.5 text-[11px] font-semibold text-white"
-            style={{ background: persona.color }}
-          >
-            Book a Demo →
-          </span>
-        </div>
-      </div>
-    </TiltCard>
-  );
-}
-
-function PersonaPanel() {
-  const [persona, setPersona] = useState<HeroPersona>(DEFAULT_PERSONA);
-  const router = useRouter();
-  const update = useSigStore((s) => s.update);
-
-  function continueInEditor() {
-    update({
-      name: persona.name.trim() || DEFAULT_PERSONA.name,
-      company: persona.company.trim() || DEFAULT_PERSONA.company,
-      brandColor: persona.color,
-    });
-    router.push("/editor");
-  }
-
-  return (
-    <div className="glass-card mx-auto mt-16 flex max-w-3xl flex-col items-center gap-7 rounded-3xl p-7 sm:flex-row">
-      <div className="flex-1">
-        <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-accent">
-          <Sparkles className="h-3.5 w-3.5" /> Now make it yours
-        </p>
-        <div className="flex flex-col gap-3">
-          <label>
-            <span className="sr-only">Your name</span>
-            <input
-              value={persona.name}
-              onChange={(e) => setPersona({ ...persona, name: e.target.value })}
-              placeholder="Your name"
-              maxLength={40}
-              className="w-full rounded-xl border border-line bg-white/80 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
-            />
-          </label>
-          <label>
-            <span className="sr-only">Company</span>
-            <input
-              value={persona.company}
-              onChange={(e) => setPersona({ ...persona, company: e.target.value })}
-              placeholder="Company"
-              maxLength={40}
-              className="w-full rounded-xl border border-line bg-white/80 px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
-            />
-          </label>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              {PERSONA_COLORS.map((c) => (
-                <motion.button
-                  key={c}
-                  whileHover={{ scale: 1.18 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setPersona({ ...persona, color: c })}
-                  aria-label={`Brand color ${c}`}
-                  className={`h-7 w-7 rounded-full border-2 transition ${
-                    persona.color === c ? "border-ink" : "border-transparent"
-                  }`}
-                  style={{ background: c }}
-                />
-              ))}
-            </div>
-            <button
-              onClick={continueInEditor}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent transition hover:gap-2.5"
-            >
-              Continue in the editor <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-      <LiveMiniCard persona={persona} />
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
+/* ---------------- Hero ---------------- */
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden px-6 pb-24 pt-36 sm:pt-40">
-      {/* ambient glow */}
+    <section className="relative overflow-hidden bg-[#0b0f1c] px-6 pb-28 pt-36 sm:pt-40">
+      {/* cinematic glow field */}
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-[-220px] h-[560px] w-[1100px] -translate-x-1/2 rounded-full opacity-40 blur-3xl"
+        className="pointer-events-none absolute left-1/2 top-[-260px] h-[620px] w-[1200px] -translate-x-1/2 rounded-full opacity-60 blur-3xl"
         style={{
           background:
-            "radial-gradient(ellipse at center, rgb(91 91 247 / 0.4), rgb(139 125 255 / 0.18) 45%, transparent 72%)",
+            "radial-gradient(ellipse at center, rgb(91 91 247 / 0.35), rgb(0 212 255 / 0.12) 45%, transparent 72%)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute bottom-[-200px] right-[-160px] h-[480px] w-[480px] rounded-full blur-3xl"
+        style={{
+          background: "radial-gradient(circle, rgb(139 125 255 / 0.18), transparent 70%)",
+          animation: "blob-pulse 9s ease-in-out infinite",
         }}
       />
 
       <div className="relative mx-auto max-w-6xl text-center">
         <motion.div {...stage(0)}>
-          <span className="glass-card inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold text-ink-muted">
-            <Sparkles className="h-3.5 w-3.5 text-accent" />
-            Supercharge your email signature
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 py-1.5 text-xs font-semibold text-white/70 backdrop-blur">
+            <Sparkles className="h-3.5 w-3.5 text-cyan" />
+            The end of boring email signatures
           </span>
         </motion.div>
 
         <motion.h1
           {...stage(1)}
-          className="mx-auto mt-7 max-w-3xl font-display text-[2.9rem] font-semibold leading-[1.04] tracking-tight text-ink sm:text-[4rem]"
+          className="mx-auto mt-7 max-w-3xl font-display text-[2.9rem] font-semibold leading-[1.04] tracking-tight text-white sm:text-[4rem]"
         >
-          Stand out in <span className="text-gradient">every inbox</span>
+          Every signature is boring.
+          <br />
+          <span className="text-gradient">Yours is about to book demos.</span>
         </motion.h1>
 
         <motion.p
           {...stage(2)}
-          className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-ink-muted"
+          className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-white/60"
         >
-          Animated, verified, click-tracked signatures — whatever your industry,
-          your email starts booking demos for you.
+          Watch what happens when a plain sign-off becomes an animated, verified,
+          click-tracked SigCraft signature.
         </motion.p>
 
         <motion.div {...stage(3)} className="mt-9 flex flex-wrap items-center justify-center gap-4">
@@ -469,7 +290,7 @@ export function Hero() {
             <motion.span whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Link
                 href="/signup"
-                className="bg-gradient-accent inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-semibold text-white shadow-[--shadow-glow] transition hover:brightness-110"
+                className="bg-gradient-accent inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-semibold text-white shadow-[0_8px_40px_rgb(91_91_247/0.5)] transition hover:brightness-110"
               >
                 Get Started, Free <ArrowRight className="h-4 w-4" />
               </Link>
@@ -478,48 +299,48 @@ export function Hero() {
           <motion.span whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
             <Link
               href="/#showcase"
-              className="glass-card inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-semibold text-ink transition hover:bg-white"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-7 py-3.5 text-base font-semibold text-white backdrop-blur transition hover:bg-white/[0.12]"
             >
-              <Play className="h-4 w-4 text-accent" /> See how it works
+              <Play className="h-4 w-4 text-cyan" /> See how it works
             </Link>
           </motion.span>
         </motion.div>
 
         <motion.div
           {...stage(4)}
-          className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-ink-muted"
+          className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/50"
         >
           <span className="flex items-center gap-1.5">
             {[...Array(5)].map((_, i) => (
               <Star key={i} className="h-3.5 w-3.5 fill-warn text-warn" />
             ))}
-            <strong className="text-ink">4.9</strong> on G2
+            <strong className="text-white/85">4.9</strong> on G2
           </span>
-          <span className="hidden h-4 w-px bg-line sm:block" />
+          <span className="hidden h-4 w-px bg-white/15 sm:block" />
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="h-4 w-4 text-success" /> SOC 2 Type II
           </span>
-          <span className="hidden h-4 w-px bg-line sm:block" />
+          <span className="hidden h-4 w-px bg-white/15 sm:block" />
           <span>7-day free trial · No card required</span>
         </motion.div>
 
-        {/* the flowing showcase */}
+        {/* the transformation */}
         <motion.div
           initial={{ opacity: 0, y: 40, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.9, delay: 0.55, ease: EASE }}
+          transition={{ duration: 0.9, delay: 0.5, ease: EASE }}
+          className="mt-16"
         >
-          <SignatureFlow />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 32 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.85, ease: EASE }}
-        >
-          <PersonaPanel />
+          <TransformationStage />
         </motion.div>
       </div>
+
+      {/* soft seam into the light page below */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-24"
+        style={{ background: "linear-gradient(180deg, transparent, #fafafc)" }}
+      />
     </section>
   );
 }
